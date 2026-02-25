@@ -31,6 +31,12 @@ interface Widget {
   settings: any;
 }
 
+interface Preset {
+  id: string;
+  name: string;
+  widgets: Widget[];
+}
+
 // --- Mock Data & Config ---
 const WIDGET_CATEGORIES = [
   {
@@ -132,12 +138,61 @@ const Select = ({ value, onChange, options }: any) => (
 );
 
 export default function App() {
+  const [presets, setPresets] = useState<Preset[]>([
+    { id: 'preset-1', name: '기본 프리셋', widgets: INITIAL_WIDGETS }
+  ]);
+  const [activePresetId, setActivePresetId] = useState<string>('preset-1');
+  
   const [widgets, setWidgets] = useState<Widget[]>(INITIAL_WIDGETS);
   const [selectedId, setSelectedId] = useState<string | null>('w-1');
   const [leftTab, setLeftTab] = useState<'add' | 'layers'>('add');
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const selectedWidget = widgets.find(w => w.id === selectedId);
+
+  const loadPreset = (id: string) => {
+    // Auto-save current state to the active preset before switching
+    setPresets(prev => prev.map(p => p.id === activePresetId ? { ...p, widgets } : p));
+    
+    const preset = presets.find(p => p.id === id);
+    if (preset) {
+      setWidgets(preset.widgets);
+      setActivePresetId(id);
+      setSelectedId(null);
+    }
+  };
+
+  const createNewPreset = () => {
+    setPresets(prev => prev.map(p => p.id === activePresetId ? { ...p, widgets } : p));
+    
+    const newId = `preset-${Date.now()}`;
+    const newPreset = { id: newId, name: `프리셋 ${presets.length + 1}`, widgets: [] };
+    setPresets(prev => [...prev, newPreset]);
+    setWidgets([]);
+    setActivePresetId(newId);
+    setSelectedId(null);
+  };
+
+  const deletePreset = (id: string) => {
+    if (presets.length === 1) {
+      alert('최소 1개의 프리셋이 필요합니다.');
+      return;
+    }
+    if (confirm('이 프리셋을 삭제하시겠습니까?')) {
+      const newPresets = presets.filter(p => p.id !== id);
+      setPresets(newPresets);
+      if (activePresetId === id) {
+        setWidgets(newPresets[0].widgets);
+        setActivePresetId(newPresets[0].id);
+        setSelectedId(null);
+      }
+    }
+  };
+
+  const saveCurrentPreset = () => {
+    setPresets(prev => prev.map(p => p.id === activePresetId ? { ...p, widgets } : p));
+    alert('현재 프리셋이 저장되었습니다.');
+  };
 
   const addWidget = (type: WidgetType, name: string) => {
     const newWidget: Widget = {
@@ -251,6 +306,26 @@ export default function App() {
             <span className="text-sm font-medium text-slate-300">통합 전체화면 위젯</span>
             <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">1920x1080</span>
           </div>
+          <div className="h-4 w-px bg-slate-700 mx-2"></div>
+          
+          {/* Preset Selector */}
+          <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-lg p-1">
+            <select 
+              value={activePresetId}
+              onChange={(e) => loadPreset(e.target.value)}
+              className="bg-transparent border-none text-sm font-medium text-slate-200 focus:outline-none px-2 py-1 cursor-pointer appearance-none pr-6 relative"
+              style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center', backgroundSize: '16px' }}
+            >
+              {presets.map(p => <option key={p.id} value={p.id} className="bg-slate-900">{p.name}</option>)}
+            </select>
+            <div className="w-px h-4 bg-slate-700 mx-1"></div>
+            <button onClick={createNewPreset} className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors" title="새 프리셋">
+              <Plus size={14} />
+            </button>
+            <button onClick={() => deletePreset(activePresetId)} className="p-1.5 hover:bg-red-500/20 rounded text-slate-400 hover:text-red-400 transition-colors" title="현재 프리셋 삭제">
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
         
         <div className="flex items-center gap-3">
@@ -258,7 +333,7 @@ export default function App() {
             <Play size={16} />
             <span>시뮬레이션</span>
           </button>
-          <button className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors shadow-lg shadow-blue-900/20">
+          <button onClick={saveCurrentPreset} className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors shadow-lg shadow-blue-900/20">
             <Save size={16} />
             <span>저장하기</span>
           </button>
