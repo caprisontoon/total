@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Settings, Bell, LayoutGrid, Mic, Trophy, 
   Heart, Box, User, Search, Sun, Moon, ChevronLeft, ChevronRight, 
   Play, Image as ImageIcon, Volume2, Plus, X, AlignCenter, AlignLeft, MessageSquare,
-  MessageCircle, Smartphone, ArrowUp, Edit2, Check
+  MessageCircle, Smartphone, ArrowUp, Edit2, Check, GripVertical
 } from 'lucide-react';
 
 export default function App() {
@@ -368,8 +368,42 @@ function AlertSettings({ layoutMode, isCollapsed, setIsCollapsed, setLayoutMode 
   const [showDeleteError, setShowDeleteError] = useState(false);
   const [isAddingGroup, setIsAddingGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
+  const [draggedGroupId, setDraggedGroupId] = useState<string | null>(null);
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [tempSelectedGroupId, setTempSelectedGroupId] = useState<string | null>(null);
 
   const activeGroup = presetGroups.find(g => g.id === activeGroupId) || presetGroups[0];
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedGroupId(id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedGroupId || draggedGroupId === targetId) return;
+
+    const draggedIndex = presetGroups.findIndex(g => g.id === draggedGroupId);
+    const targetIndex = presetGroups.findIndex(g => g.id === targetId);
+
+    const newGroups = [...presetGroups];
+    const [draggedItem] = newGroups.splice(draggedIndex, 1);
+    newGroups.splice(targetIndex, 0, draggedItem);
+
+    setPresetGroups(newGroups);
+    setDraggedGroupId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedGroupId(null);
+  };
 
   const handleAddGroupClick = () => {
     setIsAddingGroup(true);
@@ -428,6 +462,49 @@ function AlertSettings({ layoutMode, isCollapsed, setIsCollapsed, setLayoutMode 
     setEditingGroupId(null);
   };
 
+  const handleAddGroupFromModal = () => {
+    const newId = 'g' + Date.now();
+    const newName = '새 프리셋 그룹';
+    setPresetGroups([...presetGroups, { 
+      id: newId, 
+      name: newName, 
+      presets: [
+        { id: 'p' + Date.now() + '1', condition: '후원금액 1,000 cash 이상', active: true },
+        { id: 'p' + Date.now() + '2', condition: '후원금액 10,000 cash 이상', active: true }
+      ] 
+    }]);
+    setEditingGroupId(newId);
+    setEditingGroupName(newName);
+  };
+
+  const handleDeleteGroupFromModal = (id: string) => {
+    if (presetGroups.length <= 1) return;
+    
+    if (deletingGroupId !== id) {
+      setDeletingGroupId(id);
+      setTimeout(() => setDeletingGroupId(null), 3000);
+      return;
+    }
+    
+    const newGroups = presetGroups.filter(g => g.id !== id);
+    setPresetGroups(newGroups);
+    if (activeGroupId === id) {
+      setActiveGroupId(newGroups[0].id);
+    }
+    setDeletingGroupId(null);
+  };
+
+  const startEditingGroupFromModal = (id: string, name: string) => {
+    setEditingGroupId(id);
+    setEditingGroupName(name);
+  };
+
+  const saveEditingGroupFromModal = () => {
+    if (!editingGroupName.trim() || !editingGroupId) return;
+    setPresetGroups(presetGroups.map(g => g.id === editingGroupId ? { ...g, name: editingGroupName } : g));
+    setEditingGroupId(null);
+  };
+
   const handleAddPreset = () => {
     const newPreset = {
       id: 'p' + Date.now(),
@@ -451,6 +528,20 @@ function AlertSettings({ layoutMode, isCollapsed, setIsCollapsed, setLayoutMode 
   const handleTestPlay = () => {
     setShowPreviewAnim(false);
     setTimeout(() => setShowPreviewAnim(true), 100);
+  };
+
+  const handleDropdownSelect = () => {
+    if (tempSelectedGroupId) {
+      setActiveGroupId(tempSelectedGroupId);
+    }
+    setIsDropdownOpen(false);
+  };
+
+  const toggleDropdown = () => {
+    if (!isDropdownOpen) {
+      setTempSelectedGroupId(activeGroupId);
+    }
+    setIsDropdownOpen(!isDropdownOpen);
   };
 
   return (
@@ -479,92 +570,68 @@ function AlertSettings({ layoutMode, isCollapsed, setIsCollapsed, setLayoutMode 
 
           <div className="space-y-6">
             <Section title="프리셋 그룹 설정" subtitle="방송 주제별로 프리셋을 그룹화하여 다르게 적용할 수 있습니다.">
-              {/* Group Selection Row */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200 gap-4">
+              {/* Group Selection Row (Compact) */}
+              <div className="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold text-gray-700 shrink-0">현재 그룹</span>
+                  <span className="text-sm font-bold text-gray-700 flex items-center gap-2 shrink-0">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                    현재 그룹
+                  </span>
                   
-                  {editingGroupId === activeGroupId ? (
-                    <div className="flex items-center gap-1">
-                      <input 
-                        type="text" 
-                        value={editingGroupName}
-                        onChange={(e) => setEditingGroupName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') saveEditingGroup();
-                          if (e.key === 'Escape') setEditingGroupId(null);
-                        }}
-                        className="border border-blue-500 rounded-md px-3 py-1.5 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-200 bg-white w-48 shadow-sm"
-                        autoFocus
-                      />
-                      <button onClick={saveEditingGroup} className="p-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 shadow-sm transition-colors" title="확인">
-                        <Check size={14} />
-                      </button>
-                      <button onClick={() => setEditingGroupId(null)} className="p-1.5 bg-gray-200 text-gray-600 rounded-md hover:bg-gray-300 shadow-sm transition-colors" title="취소">
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <select 
-                        value={activeGroupId}
-                        onChange={(e) => setActiveGroupId(e.target.value)}
-                        className="border border-gray-300 rounded-md px-3 py-2 text-sm font-medium outline-none focus:border-blue-500 bg-white w-48 shadow-sm cursor-pointer"
-                      >
-                        {presetGroups.map(g => (
-                          <option key={g.id} value={g.id}>{g.name}</option>
-                        ))}
-                      </select>
-                      <button onClick={startEditingGroup} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors" title="그룹 이름 수정">
-                        <Edit2 size={16} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  {isAddingGroup ? (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="text"
-                        value={newGroupName}
-                        onChange={(e) => setNewGroupName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') confirmAddGroup();
-                          if (e.key === 'Escape') cancelAddGroup();
-                        }}
-                        placeholder="그룹 이름 입력"
-                        className="border border-blue-500 rounded-md px-3 py-1.5 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-200 bg-white w-32 shadow-sm"
-                        autoFocus
-                      />
-                      <button onClick={confirmAddGroup} className="p-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 shadow-sm transition-colors" title="확인">
-                        <Check size={14} />
-                      </button>
-                      <button onClick={cancelAddGroup} className="p-1.5 bg-gray-200 text-gray-600 rounded-md hover:bg-gray-300 shadow-sm transition-colors" title="취소">
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ) : (
-                    <button onClick={handleAddGroupClick} className="px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 flex items-center gap-1 shadow-sm transition-colors">
-                      <Plus size={14} /> 새 그룹
+                  {/* Custom Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={toggleDropdown}
+                      className="flex items-center justify-between border border-gray-300 rounded-md px-3 py-2 text-sm font-medium outline-none focus:border-blue-500 bg-white w-64 shadow-sm cursor-pointer hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="truncate">{activeGroup.name}</span>
+                      <ChevronRight size={14} className={`transform transition-transform ${isDropdownOpen ? 'rotate-90' : ''}`} />
                     </button>
-                  )}
-                  <button 
-                    onClick={handleDeleteGroup} 
-                    className={`px-3 py-2 border rounded-md text-sm font-medium flex items-center gap-1 shadow-sm transition-colors ${
-                      showDeleteError ? 'bg-red-50 border-red-500 text-red-500' :
-                      showDeleteConfirm ? 'bg-red-500 border-red-500 text-white hover:bg-red-600' :
-                      'bg-white border-red-200 text-red-600 hover:bg-red-50'
-                    }`}
-                  >
-                    {showDeleteError ? (
-                      <span>최소 1개 유지</span>
-                    ) : showDeleteConfirm ? (
-                      <span>정말 삭제할까요?</span>
-                    ) : (
-                      <><X size={14} /> 그룹 삭제</>
+
+                    {isDropdownOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-10" 
+                          onClick={() => setIsDropdownOpen(false)}
+                        ></div>
+                        <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-20 overflow-hidden flex flex-col">
+                          <div className="max-h-60 overflow-y-auto p-2 space-y-1">
+                            {presetGroups.map(g => (
+                              <label 
+                                key={g.id} 
+                                className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors ${tempSelectedGroupId === g.id ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50 text-gray-700'}`}
+                              >
+                                <input 
+                                  type="radio" 
+                                  name="presetGroup" 
+                                  value={g.id}
+                                  checked={tempSelectedGroupId === g.id}
+                                  onChange={() => setTempSelectedGroupId(g.id)}
+                                  className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                                />
+                                <span className="text-sm font-medium truncate">{g.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                          <div className="p-2 border-t border-gray-100 bg-gray-50">
+                            <button
+                              onClick={handleDropdownSelect}
+                              className="w-full py-2 bg-blue-500 text-white rounded-md text-sm font-bold hover:bg-blue-600 transition-colors shadow-sm"
+                            >
+                              선택
+                            </button>
+                          </div>
+                        </div>
+                      </>
                     )}
-                  </button>
+                  </div>
                 </div>
+                <button 
+                  onClick={() => setIsGroupModalOpen(true)}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 flex items-center gap-2 shadow-sm transition-colors shrink-0"
+                >
+                  <Settings size={14} /> 그룹 관리
+                </button>
               </div>
 
               {/* Presets in Active Group */}
@@ -761,6 +828,83 @@ function AlertSettings({ layoutMode, isCollapsed, setIsCollapsed, setLayoutMode 
         </div>
 
       </div>
+
+      {/* Group Management Modal */}
+      {isGroupModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+              <h2 className="text-lg font-bold text-gray-800">프리셋 그룹 관리</h2>
+              <button onClick={() => setIsGroupModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1 space-y-2">
+              {presetGroups.map(g => (
+                <div
+                  key={g.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, g.id)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, g.id)}
+                  onDragEnd={handleDragEnd}
+                  className={`flex items-center gap-3 p-3 rounded-lg border bg-white transition-all ${draggedGroupId === g.id ? 'opacity-40 scale-[0.98]' : 'hover:border-blue-300'}`}
+                >
+                  <div className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600" title="드래그하여 순서 변경">
+                    <GripVertical size={16} />
+                  </div>
+
+                  {editingGroupId === g.id ? (
+                    <div className="flex-1 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={editingGroupName}
+                        onChange={(e) => setEditingGroupName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveEditingGroupFromModal();
+                          if (e.key === 'Escape') setEditingGroupId(null);
+                        }}
+                        className="flex-1 border border-blue-500 rounded px-2 py-1.5 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-200"
+                        autoFocus
+                      />
+                      <button onClick={saveEditingGroupFromModal} className="p-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"><Check size={14}/></button>
+                      <button onClick={() => setEditingGroupId(null)} className="p-1.5 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 transition-colors"><X size={14}/></button>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="flex-1 text-sm font-medium text-gray-700">{g.name}</span>
+                      <button onClick={() => startEditingGroupFromModal(g.id, g.name)} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded transition-colors" title="이름 수정">
+                        <Edit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteGroupFromModal(g.id)}
+                        disabled={presetGroups.length <= 1}
+                        className={`p-1.5 rounded transition-colors ${
+                          presetGroups.length <= 1 ? 'text-gray-300 cursor-not-allowed' :
+                          deletingGroupId === g.id ? 'bg-red-500 text-white hover:bg-red-600' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                        }`}
+                        title={presetGroups.length <= 1 ? "최소 1개의 그룹이 필요합니다" : "그룹 삭제"}
+                      >
+                        {deletingGroupId === g.id ? <span className="text-xs font-bold px-1">삭제?</span> : <X size={14} />}
+                      </button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={handleAddGroupFromModal}
+                className="w-full py-2.5 bg-white border border-dashed border-gray-300 text-gray-600 rounded-lg text-sm font-bold hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
+              >
+                <Plus size={16} /> 새 그룹 추가
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
