@@ -1,383 +1,342 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useRef, useEffect } from 'react';
 import { 
-  LayoutDashboard, Settings, Bell, LayoutGrid, Mic, Trophy, 
-  Heart, Box, User, Search, Sun, Moon, ChevronLeft, ChevronRight, 
-  Play, Image as ImageIcon, Volume2, Plus, X, AlignCenter, AlignLeft, MessageSquare,
-  MessageCircle, Smartphone, ArrowUp, Edit2, Check, GripVertical
+  Layout, Layers, Plus, Settings, Play, Save, Monitor, 
+  Type, Image as ImageIcon, Volume2, Move, ChevronDown, 
+  ChevronRight, Trash2, Copy, Eye, EyeOff, MousePointer2,
+  AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline,
+  Video, Mic, Gift, Target, ListTodo, HelpCircle, Music, Palette,
+  Box, Gamepad2, GripVertical, BellRing, LayoutGrid, MessageSquare, QrCode, PiggyBank, Bell, Coins, Trophy, Users, Star, Package
 } from 'lucide-react';
 
-export default function App() {
-  const [activeMenu, setActiveMenu] = useState<'alert' | 'widget'>('alert');
-  const [layoutMode, setLayoutMode] = useState<'split' | 'collapse' | 'pip'>('split');
-  const [isCollapsed, setIsCollapsed] = useState(false);
+// --- Types ---
+type WidgetType = string;
 
-  return (
-    <div className="min-h-screen bg-[#f8f9fa] text-[#111827] font-sans flex">
-      {/* Sidebar */}
-      <aside className="w-[240px] bg-white border-r border-gray-200 fixed h-full left-0 top-0 z-20 flex flex-col">
-        <div className="h-16 flex items-center px-6 border-b border-gray-200">
-          <div className="flex items-center gap-2 text-blue-500 font-bold text-xl tracking-tighter">
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white">
-              <span className="text-lg leading-none">t</span>
-            </div>
-            toonation
-          </div>
-        </div>
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-          <NavItem icon={<LayoutDashboard size={18} />} label="대시보드" />
-          <NavItem icon={<Settings size={18} />} label="간편설정" />
-          <NavItem 
-            icon={<Bell size={18} />} 
-            label="통합 알림창" 
-            active={activeMenu === 'alert'} 
-            onClick={() => setActiveMenu('alert')} 
-          />
-          <NavItem 
-            icon={<LayoutGrid size={18} />} 
-            label="위젯" 
-            active={activeMenu === 'widget'} 
-            onClick={() => setActiveMenu('widget')} 
-          />
-          <NavItem icon={<Mic size={18} />} label="모두의 보이스" />
-          <NavItem icon={<Trophy size={18} />} label="랭킹" />
-          <NavItem icon={<Heart size={18} />} label="후원관리" hasSub />
-          <NavItem icon={<Box size={18} />} label="인벤토리" />
-          <NavItem icon={<User size={18} />} label="계정설정" />
-        </nav>
-      </aside>
-
-      {/* Main Content Wrapper */}
-      <div className="flex-1 ml-[240px] flex flex-col min-h-screen">
-        {/* Header */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-10">
-          <div className="flex items-center gap-4">
-            {/* Layout Mode Switcher (For Testing) */}
-            <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
-              <ModeButton 
-                active={layoutMode === 'split'} 
-                onClick={() => { setLayoutMode('split'); setIsCollapsed(false); }}
-              >
-                좌우 분할
-              </ModeButton>
-              <ModeButton 
-                active={layoutMode === 'collapse'} 
-                onClick={() => setLayoutMode('collapse')}
-              >
-                접이식 패널
-              </ModeButton>
-              <ModeButton 
-                active={layoutMode === 'pip'} 
-                onClick={() => { setLayoutMode('pip'); setIsCollapsed(false); }}
-              >
-                플로팅 PiP
-              </ModeButton>
-            </div>
-          </div>
-          <div className="flex items-center gap-5 text-gray-500">
-            <div className="relative">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="검색" className="pl-9 pr-4 py-1.5 bg-gray-100 border-transparent rounded-full text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none w-48 transition-all" />
-            </div>
-            <div className="flex items-center gap-2 bg-gray-100 rounded-full p-1">
-              <button className="p-1 bg-white rounded-full shadow-sm text-gray-800"><Sun size={14} /></button>
-              <button className="p-1 text-gray-400 hover:text-gray-600"><Moon size={14} /></button>
-            </div>
-            <Bell size={20} className="cursor-pointer hover:text-gray-800" />
-            <div className="flex items-center gap-2 cursor-pointer">
-              <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-sm">C</div>
-              <span className="text-sm font-medium text-gray-700">크리에이터</span>
-            </div>
-          </div>
-        </header>
-
-        {/* Page Content */}
-        <main className="p-8 flex-1">
-          {activeMenu === 'alert' ? (
-            <AlertSettings 
-              layoutMode={layoutMode} 
-              isCollapsed={isCollapsed} 
-              setIsCollapsed={setIsCollapsed} 
-              setLayoutMode={setLayoutMode}
-            />
-          ) : (
-            <WidgetSettings 
-              layoutMode={layoutMode} 
-              isCollapsed={isCollapsed} 
-              setIsCollapsed={setIsCollapsed} 
-              setLayoutMode={setLayoutMode}
-            />
-          )}
-        </main>
-
-        {/* Floating Action Buttons (Bottom Right) */}
-        <FloatingActionButtons />
-      </div>
-    </div>
-  );
+interface Widget {
+  id: string;
+  type: WidgetType;
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  visible: boolean;
+  settings: any;
 }
 
-// ---------------------------------------------------------
-// Widget Settings Component (채팅창 위젯)
-// ---------------------------------------------------------
-function WidgetSettings({ layoutMode, isCollapsed, setIsCollapsed, setLayoutMode }: any) {
-  return (
-    <div className="max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">위젯</h1>
-      
-      {/* Dynamic Layout Container */}
-      <div className={`flex items-start relative transition-all duration-300 ease-in-out ${layoutMode === 'pip' ? 'block' : ''}`}>
-        
-        {/* Settings Area (Left) */}
-        <div className={`transition-all duration-300 ease-in-out ${
-          layoutMode === 'pip' ? 'w-full max-w-4xl' : 
-          (layoutMode === 'collapse' && isCollapsed) ? 'w-full' : 'flex-1 min-w-0'
-        }`}>
-          
-          {/* Sub Menu / Title */}
-          <div className="flex items-center gap-2 mb-6">
-            <div className="bg-blue-50 text-blue-600 px-4 py-2 rounded-md font-semibold text-sm flex items-center gap-2 border border-blue-100">
-              <MessageSquare size={16} />
-              채팅창 위젯 설정 ▼
-            </div>
-          </div>
-
-          {/* URL Copy Area */}
-          <div className="flex items-center gap-2 mb-6 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-            <span className="text-sm font-bold text-gray-700 w-32">통합 채팅 URL</span>
-            <input type="text" value="https://toon.at/widget/chatbox/dfad69355aa4c..." readOnly className="flex-1 bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-500 outline-none" />
-            <button className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50">URL 복사</button>
-            <button className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50">열기</button>
-          </div>
-
-          {/* Settings Form Blocks */}
-          <div className="space-y-6">
-            <Section title="기본 설정">
-              <FormRow label="위젯 스타일">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-                  <StyleCard title="한 줄 테두리 없음" active />
-                  <StyleCard title="한 줄 상자 테두리" />
-                  <StyleCard title="한 줄 테두리 없음 (정렬)" />
-                  <StyleCard title="한 줄 상자 테두리 (정렬)" />
-                  <StyleCard title="한 줄 심플" />
-                  <StyleCard title="한 줄 심플 (정렬)" />
-                </div>
-              </FormRow>
-
-              <FormRow label="알림 효과">
-                <div className="flex gap-3 w-full">
-                  <select className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500">
-                    <option>Fade In</option>
-                  </select>
-                  <select className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500">
-                    <option>Fade Out</option>
-                  </select>
-                </div>
-              </FormRow>
-
-              <FormRow label="폰트 설정">
-                <div className="flex gap-3 w-full">
-                  <select className="flex-[2] border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500">
-                    <option>제주 고딕</option>
-                  </select>
-                  <select className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500">
-                    <option>24 px</option>
-                  </select>
-                  <div className="flex-1 flex items-center gap-2 border border-gray-300 rounded-md px-3 py-2">
-                    <div className="w-4 h-4 rounded-full bg-white border border-gray-300"></div>
-                    <span className="text-sm text-gray-600">#FFFFFF</span>
-                  </div>
-                </div>
-              </FormRow>
-
-              <FormRow label="닉네임 컬러 사용하기">
-                <Toggle active={false} />
-              </FormRow>
-
-              <FormRow label="닉네임 배경(화이트)">
-                <div className="flex items-center gap-6">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="bg" className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm text-gray-700">항상 사용하기</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="bg" defaultChecked className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm text-gray-700">어두운 닉네임 사용시</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="bg" className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm text-gray-700">사용하지 않기</span>
-                  </label>
-                </div>
-              </FormRow>
-
-              <FormRow label="채팅 최대 표시 줄">
-                <div className="flex items-center gap-2 w-full max-w-xs">
-                  <input type="number" defaultValue="8" className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" />
-                  <span className="text-sm text-gray-600">줄</span>
-                </div>
-              </FormRow>
-
-              <FormRow label="자동으로 감추기 사용">
-                <div className="flex items-center gap-6 w-full">
-                  <Toggle active={false} />
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">감추기 시간(초)</span>
-                    <input type="number" defaultValue="15" className="w-20 border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" />
-                    <span className="text-sm text-gray-600">초</span>
-                  </div>
-                </div>
-              </FormRow>
-
-              <FormRow label="플랫폼 아이콘 감추기">
-                <Toggle active={false} />
-              </FormRow>
-
-              <FormRow label="숨길 닉네임 추가하기">
-                <div className="flex flex-col gap-3 w-full">
-                  <div className="flex gap-2">
-                    <input type="text" placeholder="숨길 닉네임" className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" />
-                    <button className="px-6 py-2 bg-gray-500 text-white rounded-md text-sm font-medium hover:bg-gray-600">추가</button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Tag label="Nightbot" />
-                    <Tag label="MooBot" />
-                    <Tag label="StreamElements" />
-                  </div>
-                </div>
-              </FormRow>
-            </Section>
-            
-            <div className="h-32"></div> {/* Bottom padding */}
-          </div>
-        </div>
-
-        {/* Collapse Toggle Button & Divider */}
-        {layoutMode === 'collapse' && (
-          <div className="relative w-0 z-20">
-            {/* Vertical Divider Line */}
-            <div className="absolute top-0 bottom-0 w-px bg-gray-200"></div>
-            
-            {/* Sticky Toggle Button */}
-            <div className="sticky top-[50vh] -translate-y-1/2 -ml-3.5">
-              <button 
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                className="w-7 h-20 bg-white border border-gray-200 rounded-full shadow-sm flex items-center justify-center text-gray-400 hover:text-blue-500 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md transition-all group"
-              >
-                <div className="flex flex-col items-center gap-1">
-                  <div className="w-1 h-1 rounded-full bg-gray-300 group-hover:bg-blue-300 transition-colors"></div>
-                  {isCollapsed ? <ChevronLeft size={14} strokeWidth={3} /> : <ChevronRight size={14} strokeWidth={3} />}
-                  <div className="w-1 h-1 rounded-full bg-gray-300 group-hover:bg-blue-300 transition-colors"></div>
-                </div>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Preview Area (Right or Floating) */}
-        <div className={`transition-all duration-300 ease-in-out flex justify-end ${
-          layoutMode === 'pip' 
-            ? 'fixed bottom-8 right-28 w-[400px] z-40 shadow-2xl bg-white rounded-xl border border-gray-200 overflow-hidden' 
-            : `shrink-0 sticky top-24 overflow-hidden ${
-                (layoutMode === 'collapse' && isCollapsed)
-                  ? 'w-0 opacity-0 ml-0'
-                  : 'w-[360px] ml-8 opacity-100'
-              }`
-        }`}>
-          
-          <div className={`${layoutMode === 'pip' ? 'w-full' : 'w-[360px] shrink-0'} bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden`}>
-            <div className="bg-gray-800 text-white px-4 py-3 flex items-center justify-between">
-              <span className="text-sm font-semibold flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                채팅창 미리보기
-              </span>
-              {layoutMode === 'pip' && (
-                <button onClick={() => setLayoutMode('split')} className="text-gray-400 hover:text-white">
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-
-            {/* Chat Preview Screen */}
-            <div className="aspect-video bg-[#111] relative p-4 overflow-hidden flex flex-col justify-end">
-              <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '16px 16px' }}></div>
-              
-              <div className="relative z-10 space-y-2 w-full">
-                <ChatMessage platform="T" name="글레이시아" message="언팔빨추구독" color="#a855f7" />
-                <ChatMessage platform="T" name="사무새" message="사이렌 합시다 사이렌" color="#3b82f6" />
-                <ChatMessage platform="Y" name="Dong Myong Son" message="시청해주시는 여러분 모두 감사합니다" color="#ef4444" />
-              </div>
-            </div>
-
-            <div className="p-4 bg-white border-t border-gray-100">
-              <div className="flex gap-2">
-                <button 
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
-                >
-                  <Play size={16} fill="currentColor" />
-                  채팅 테스트
-                </button>
-              </div>
-              
-              {layoutMode !== 'pip' && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <p className="text-xs text-gray-500 mb-2 font-medium">위젯 URL</p>
-                  <div className="flex gap-2">
-                    <input type="text" value="https://toon.at/widget/chatbox/dfad69355aa4c..." readOnly className="flex-1 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-xs text-gray-500" />
-                    <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded text-xs font-medium text-gray-700">복사</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
+interface Preset {
+  id: string;
+  name: string;
+  widgets: Widget[];
 }
 
-// ---------------------------------------------------------
-// Alert Settings Component (통합 알림창 - 기존 코드)
-// ---------------------------------------------------------
-function AlertSettings({ layoutMode, isCollapsed, setIsCollapsed, setLayoutMode }: any) {
-  const [showPreviewAnim, setShowPreviewAnim] = useState(true);
+// --- Mock Data & Config ---
+const ALERTS_MENU = [
+  { id: 'text-alert', name: '텍스트 후원 알림', icon: Type, desc: '텍스트로 후원 메시지를 받으며 도네이터와 소통할 수 있습니다.' },
+  { id: 'game-alert', name: '게임 후원', icon: Gamepad2, desc: '도네이터가 직접 크리에이터에게 게임 아이템을 선물 할 수 있습니다.' },
+  { id: 'signature-alert', name: '시그니처 후원 알림', icon: Star, desc: '지정된 시그니처 리액션을 선택해서 후원할 수 있습니다.' },
+  { id: 'voice-alert', name: '음성 후원 알림', icon: Mic, desc: '녹음한 음성 또는 파일등록을 통하여 후원 메시지를 받을 수 있습니다.' },
+  { id: 'video-alert', name: '영상 후원 알림', icon: Video, desc: '후원과 함께 공유한 영상을 받아 볼 수 있습니다.' },
+  { id: 'roulette-alert', name: '룰렛 후원 알림', icon: Target, desc: '여러가지 항목을 설정하여 룰렛을 돌릴 수 있습니다.' },
+  { id: 'wishlist-alert', name: '위시리스트 알림', icon: Gift, desc: '원하는 것들을 방송을 통해 도네이터들에게 알려주세요.' },
+  { id: 'vote-alert', name: '투표 알림', icon: HelpCircle, desc: '도네이터들의 의견을 투표를 통해 들을 수 있습니다.' },
+  { id: 'quest-alert', name: '퀘스트 알림', icon: ListTodo, desc: '도네이터들의 요구를 퀘스트를 통해 듣고 수행해 나갈 수 있습니다.' },
+  { id: 'drawing-alert', name: '그림 후원 알림', icon: Palette, desc: '도네이터가 직접 그린 그림을 통해 소통할 수 있습니다.' },
+  { id: 'gift-alert', name: '기프트 후원 알림', icon: Package, desc: '도네이터가 선물을 보내면 선물 사진과 함께 알림을 확인할 수 있습니다.' },
+  { id: 'luckybox-alert', name: '럭키박스 알림', icon: Box, desc: '도네이터들이 보내준 럭키박스를 통해 함께 즐기며 소통할 수 있습니다.' },
+  { id: 'play-alert', name: '플레이 후원 알림', icon: Gamepad2, desc: '퀴즈와 같은 재미있고 다양한 방법으로 도네이터와 소통할 수 있습니다.' },
+];
 
-  // --- Preset Group State ---
-  const [presetGroups, setPresetGroups] = useState([
-    {
-      id: 'g1',
-      name: '기본 방송 (Default)',
-      presets: [
-        { id: 'p1', condition: '후원금액 1,000 cash 이상', active: true },
-        { id: 'p2', condition: '후원금액 10,000 cash 이상', active: true },
-      ]
-    },
-    {
-      id: 'g2',
-      name: '공포 게임용',
-      presets: [
-        { id: 'p3', condition: '후원금액 1,000 cash 이상', active: true },
-        { id: 'p4', condition: '후원금액 5,000 cash 이상', active: true },
-      ]
+const WIDGETS_MENU = [
+  { id: 'chat', name: '채팅창', icon: MessageSquare },
+  { id: 'qr', name: '후원 QR코드', icon: QrCode },
+  { id: 'goal', name: '후원목표', icon: Target },
+  { id: 'accumulated', name: '후원누적금액', icon: PiggyBank },
+  { id: 'recent', name: '최근알림', icon: AlignLeft },
+  { id: 'event', name: '이벤트', icon: Bell },
+  { id: 'mini', name: '미니후원', icon: Coins },
+  { id: 'ranking', name: '후원랭킹', icon: Trophy },
+  { id: 'sound', name: '커스텀 사운드', icon: Volume2 },
+  { id: 'wishlist-widget', name: '위시리스트', icon: Gift },
+  { id: 'vote-widget', name: '투표', icon: HelpCircle },
+  { id: 'quest-widget', name: '퀘스트', icon: ListTodo },
+  { id: 'drawing-widget', name: '그림후원', icon: Palette },
+  { id: 'luckybox-widget', name: '럭키박스', icon: Box },
+  { id: 'play-widget', name: '플레이', icon: Gamepad2 },
+  { id: 'gacha', name: '뽑기 후원', icon: Package },
+  { id: 'wallpaper', name: '벽지', icon: ImageIcon },
+  { id: 'crew', name: '크루 후원', icon: Users },
+];
+
+const DEFAULT_TEXT_PRESET = {
+  id: 'p-1',
+  minAmount: 1000,
+  layout: 'img-top',
+  animationIn: 'Fade In',
+  animationOut: 'Fade Out',
+  template: '{닉네임}님이 {금액}원을 후원해 주셨어요!',
+  duration: 5,
+  fontFamily: 'Pretendard',
+  fontSize: 36,
+  fontColor: '#ffffff',
+  highlightColor: '#18C9FF'
+};
+
+const INITIAL_WIDGETS: Widget[] = [
+  {
+    id: 'w-1',
+    type: 'integrated-alert',
+    name: '통합 알림창',
+    x: 320,
+    y: 180,
+    width: 640,
+    height: 360,
+    visible: true,
+    settings: {
+      activeAlertTab: 'text-alert',
+      textAlert: {
+        presetGroups: [
+          {
+            id: 'g-1',
+            name: '기본 테마',
+            presets: [DEFAULT_TEXT_PRESET]
+          }
+        ],
+        activeGroupId: 'g-1',
+        editingPresetId: 'p-1'
+      }
     }
-  ]);
-  const [activeGroupId, setActiveGroupId] = useState('g1');
-  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
-  const [editingGroupName, setEditingGroupName] = useState('');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showDeleteError, setShowDeleteError] = useState(false);
-  const [isAddingGroup, setIsAddingGroup] = useState(false);
-  const [newGroupName, setNewGroupName] = useState('');
-  const [draggedGroupId, setDraggedGroupId] = useState<string | null>(null);
-  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
-  const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [tempSelectedGroupId, setTempSelectedGroupId] = useState<string | null>(null);
+  }
+];
 
-  const activeGroup = presetGroups.find(g => g.id === activeGroupId) || presetGroups[0];
+// --- Components ---
+
+const Accordion = ({ title, children, defaultOpen = true }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-slate-700/50 rounded-lg bg-slate-800/20 overflow-hidden">
+      <button 
+        className={`w-full flex items-center justify-between p-3 text-xs font-semibold text-slate-300 transition-colors hover:bg-slate-700/30 ${isOpen ? 'bg-slate-800/40 border-b border-slate-700/50' : ''}`}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {title}
+        {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+      </button>
+      {isOpen && <div className="p-4 space-y-4">{children}</div>}
+    </div>
+  );
+};
+
+const FormGroup = ({ label, children }: { label: string, children: React.ReactNode }) => (
+  <div className="space-y-1.5">
+    <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider">{label}</label>
+    {children}
+  </div>
+);
+
+const Input = ({ value, onChange, type = "text", className = "" }: any) => (
+  <input 
+    type={type} 
+    value={value} 
+    onChange={onChange}
+    className={`w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all ${className}`}
+  />
+);
+
+const Select = ({ value, onChange, options }: any) => (
+  <select 
+    value={value} 
+    onChange={onChange}
+    className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 appearance-none"
+  >
+    {options.map((opt: any) => {
+      const isObj = typeof opt === 'object';
+      const val = isObj ? opt.value : opt;
+      const label = isObj ? opt.label : opt;
+      return <option key={val} value={val}>{label}</option>;
+    })}
+  </select>
+);
+
+export default function App() {
+  const [presets, setPresets] = useState<Preset[]>([
+    { id: 'preset-1', name: '기본 프리셋', widgets: INITIAL_WIDGETS }
+  ]);
+  const [activePresetId, setActivePresetId] = useState<string>('preset-1');
+  
+  const [widgets, setWidgets] = useState<Widget[]>(INITIAL_WIDGETS);
+  const [selectedId, setSelectedId] = useState<string | null>('w-1');
+  const [stagedWidget, setStagedWidget] = useState<Widget | null>(null);
+  const [leftTab, setLeftTab] = useState<'alerts' | 'widgets' | 'layers'>('alerts');
+  const [draggedWidgetId, setDraggedWidgetId] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  const selectedWidget = widgets.find(w => w.id === selectedId) || stagedWidget;
+
+  const loadPreset = (id: string) => {
+    // Auto-save current state to the active preset before switching
+    setPresets(prev => prev.map(p => p.id === activePresetId ? { ...p, widgets } : p));
+    
+    const preset = presets.find(p => p.id === id);
+    if (preset) {
+      setWidgets(preset.widgets);
+      setActivePresetId(id);
+      setSelectedId(null);
+    }
+  };
+
+  const createNewPreset = () => {
+    setPresets(prev => prev.map(p => p.id === activePresetId ? { ...p, widgets } : p));
+    
+    const newId = `preset-${Date.now()}`;
+    const newPreset = { id: newId, name: `프리셋 ${presets.length + 1}`, widgets: [] };
+    setPresets(prev => [...prev, newPreset]);
+    setWidgets([]);
+    setActivePresetId(newId);
+    setSelectedId(null);
+  };
+
+  const deletePreset = (id: string) => {
+    if (presets.length === 1) {
+      alert('최소 1개의 프리셋이 필요합니다.');
+      return;
+    }
+    if (confirm('이 프리셋을 삭제하시겠습니까?')) {
+      const newPresets = presets.filter(p => p.id !== id);
+      setPresets(newPresets);
+      if (activePresetId === id) {
+        setWidgets(newPresets[0].widgets);
+        setActivePresetId(newPresets[0].id);
+        setSelectedId(null);
+      }
+    }
+  };
+
+  const saveCurrentPreset = () => {
+    setPresets(prev => prev.map(p => p.id === activePresetId ? { ...p, widgets } : p));
+    alert('현재 프리셋이 저장되었습니다.');
+  };
+
+  const handleAlertClick = (alertId: string) => {
+    setStagedWidget(null);
+    let alertWidget = widgets.find(w => w.type === 'integrated-alert');
+    if (!alertWidget) {
+      const defaultPreset = {
+        id: `p-${Date.now()}`,
+        minAmount: 0,
+        layout: 'img-top',
+        animationIn: 'Fade In',
+        animationOut: 'Fade Out',
+        template: '{닉네임}님이 {금액}원을 후원해 주셨어요!',
+        duration: 5,
+        fontFamily: 'Pretendard',
+        fontSize: 36,
+        fontColor: '#ffffff',
+        highlightColor: '#18C9FF'
+      };
+      const defaultGroup = {
+        id: `g-${Date.now()}`,
+        name: '기본 테마',
+        presets: [defaultPreset]
+      };
+      
+      alertWidget = {
+        id: `w-${Date.now()}`,
+        type: 'integrated-alert',
+        name: '통합 알림창',
+        x: 320,
+        y: 180,
+        width: 640,
+        height: 360,
+        visible: true,
+        settings: {
+          activeAlertTab: alertId,
+          textAlert: {
+            presetGroups: [defaultGroup],
+            activeGroupId: defaultGroup.id,
+            editingPresetId: defaultPreset.id
+          }
+        }
+      };
+      setWidgets([...widgets, alertWidget]);
+    } else {
+      updateSettings(alertWidget.id, { activeAlertTab: alertId });
+    }
+    setSelectedId(alertWidget.id);
+  };
+
+  const handleWidgetClick = (widgetItem: any) => {
+    const newWidget: Widget = {
+      id: `staged-${Date.now()}`,
+      type: widgetItem.id,
+      name: widgetItem.name,
+      x: 100 + (widgets.length * 20),
+      y: 100 + (widgets.length * 20),
+      width: 400,
+      height: 300,
+      visible: true,
+      settings: {}
+    };
+    setStagedWidget(newWidget);
+    setSelectedId(null);
+  };
+
+  const updateWidget = (id: string, updates: Partial<Widget>) => {
+    if (stagedWidget?.id === id) {
+      setStagedWidget(prev => prev ? { ...prev, ...updates } : null);
+      return;
+    }
+    setWidgets(prev => prev.map(w => w.id === id ? { ...w, ...updates } : w));
+  };
+
+  const updateSettings = (id: string, settingUpdates: any) => {
+    if (stagedWidget?.id === id) {
+      setStagedWidget(prev => prev ? { ...prev, settings: { ...prev.settings, ...settingUpdates } } : null);
+      return;
+    }
+    setWidgets(prev => prev.map(w => w.id === id ? { ...w, settings: { ...w.settings, ...settingUpdates } } : w));
+  };
+
+  const deleteWidget = (id: string) => {
+    if (stagedWidget?.id === id) {
+      setStagedWidget(null);
+      return;
+    }
+    setWidgets(prev => prev.filter(w => w.id !== id));
+    if (selectedId === id) setSelectedId(null);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      if ((e.key === 'Delete' || e.key === 'Backspace')) {
+        if (stagedWidget) {
+          setStagedWidget(null);
+        } else if (selectedId) {
+          deleteWidget(selectedId);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedId, stagedWidget]);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
-    setDraggedGroupId(id);
+    setDraggedWidgetId(id);
     e.dataTransfer.effectAllowed = 'move';
   };
 
@@ -388,675 +347,752 @@ function AlertSettings({ layoutMode, isCollapsed, setIsCollapsed, setLayoutMode 
 
   const handleDrop = (e: React.DragEvent, targetId: string) => {
     e.preventDefault();
-    if (!draggedGroupId || draggedGroupId === targetId) return;
+    if (!draggedWidgetId || draggedWidgetId === targetId) return;
 
-    const draggedIndex = presetGroups.findIndex(g => g.id === draggedGroupId);
-    const targetIndex = presetGroups.findIndex(g => g.id === targetId);
-
-    const newGroups = [...presetGroups];
-    const [draggedItem] = newGroups.splice(draggedIndex, 1);
-    newGroups.splice(targetIndex, 0, draggedItem);
-
-    setPresetGroups(newGroups);
-    setDraggedGroupId(null);
+    setWidgets(prev => {
+      const displayed = [...prev].reverse();
+      const draggedIdx = displayed.findIndex(w => w.id === draggedWidgetId);
+      const targetIdx = displayed.findIndex(w => w.id === targetId);
+      
+      if (draggedIdx === -1 || targetIdx === -1) return prev;
+      
+      const [draggedWidget] = displayed.splice(draggedIdx, 1);
+      displayed.splice(targetIdx, 0, draggedWidget);
+      
+      return displayed.reverse();
+    });
+    setDraggedWidgetId(null);
   };
 
-  const handleDragEnd = () => {
-    setDraggedGroupId(null);
+  const handleMouseDown = (e: React.MouseEvent, id: string, handle?: string) => {
+    e.stopPropagation();
+    setSelectedId(id);
+    setStagedWidget(null);
+    
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    
+    const scaleX = 1920 / rect.width;
+    const scaleY = 1080 / rect.height;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    
+    const widget = widgets.find(w => w.id === id);
+    if (!widget) return;
+
+    const initialX = widget.x;
+    const initialY = widget.y;
+    const initialWidth = widget.width;
+    const initialHeight = widget.height;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = (moveEvent.clientX - startX) * scaleX;
+      const deltaY = (moveEvent.clientY - startY) * scaleY;
+      
+      if (handle) {
+        let newX = initialX;
+        let newY = initialY;
+        let newWidth = initialWidth;
+        let newHeight = initialHeight;
+
+        if (handle.includes('left')) {
+          newX = Math.min(initialX + deltaX, initialX + initialWidth - 20);
+          newWidth = Math.max(initialWidth - deltaX, 20);
+        }
+        if (handle.includes('right')) {
+          newWidth = Math.max(initialWidth + deltaX, 20);
+        }
+        if (handle.includes('top')) {
+          newY = Math.min(initialY + deltaY, initialY + initialHeight - 20);
+          newHeight = Math.max(initialHeight - deltaY, 20);
+        }
+        if (handle.includes('bottom')) {
+          newHeight = Math.max(initialHeight + deltaY, 20);
+        }
+
+        updateWidget(id, {
+          x: Math.round(newX),
+          y: Math.round(newY),
+          width: Math.round(newWidth),
+          height: Math.round(newHeight)
+        });
+      } else {
+        updateWidget(id, {
+          x: Math.round(initialX + deltaX),
+          y: Math.round(initialY + deltaY)
+        });
+      }
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const handleAddGroupClick = () => {
-    setIsAddingGroup(true);
-    setNewGroupName('');
-  };
+  const isIntegratedAlert = selectedWidget?.type === 'integrated-alert';
+  const activeAlertTab = isIntegratedAlert ? selectedWidget?.settings.activeAlertTab : null;
+  const isTextAlertTab = isIntegratedAlert && activeAlertTab === 'text-alert';
+  
+  const textAlertSettings = isIntegratedAlert ? selectedWidget?.settings.textAlert : null;
+  const activeGroup = isTextAlertTab && textAlertSettings ? textAlertSettings.presetGroups?.find((g: any) => g.id === textAlertSettings.activeGroupId) : null;
+  const editingPreset = activeGroup ? activeGroup.presets.find((p: any) => p.id === textAlertSettings.editingPresetId) : selectedWidget?.settings;
 
-  const confirmAddGroup = () => {
-    if (!newGroupName.trim()) {
-      setIsAddingGroup(false);
-      return;
+  const handleSettingChange = (updates: any) => {
+    if (!selectedWidget) return;
+    
+    if (isIntegratedAlert && activeAlertTab === 'text-alert' && textAlertSettings) {
+      const updatedGroups = textAlertSettings.presetGroups.map((group: any) => {
+        if (group.id === textAlertSettings.activeGroupId) {
+          return {
+            ...group,
+            presets: group.presets.map((preset: any) => 
+              preset.id === textAlertSettings.editingPresetId ? { ...preset, ...updates } : preset
+            )
+          };
+        }
+        return group;
+      });
+      updateSettings(selectedWidget.id, { 
+        textAlert: {
+          ...textAlertSettings,
+          presetGroups: updatedGroups 
+        }
+      });
+    } else {
+      updateSettings(selectedWidget.id, updates);
     }
-    const newId = 'g' + Date.now();
-    setPresetGroups([...presetGroups, { 
-      id: newId, 
-      name: newGroupName.trim(), 
-      presets: [
-        { id: 'p' + Date.now() + '1', condition: '후원금액 1,000 cash 이상', active: true },
-        { id: 'p' + Date.now() + '2', condition: '후원금액 10,000 cash 이상', active: true }
-      ] 
-    }]);
-    setActiveGroupId(newId);
-    setIsAddingGroup(false);
-    setNewGroupName('');
   };
 
-  const cancelAddGroup = () => {
-    setIsAddingGroup(false);
-    setNewGroupName('');
+  const handleAddGroup = () => {
+    if (!selectedWidget || !isTextAlertTab || !textAlertSettings) return;
+    const newGroupId = `g-${Date.now()}`;
+    const newPresetId = `p-${Date.now()}`;
+    const newGroup = {
+      id: newGroupId,
+      name: `새 테마 ${textAlertSettings.presetGroups.length + 1}`,
+      presets: [{ ...DEFAULT_TEXT_PRESET, id: newPresetId }]
+    };
+    updateSettings(selectedWidget.id, { 
+      textAlert: {
+        ...textAlertSettings,
+        presetGroups: [...textAlertSettings.presetGroups, newGroup],
+        activeGroupId: newGroupId,
+        editingPresetId: newPresetId
+      }
+    });
   };
 
   const handleDeleteGroup = () => {
-    if (presetGroups.length <= 1) {
-      setShowDeleteError(true);
-      setTimeout(() => setShowDeleteError(false), 2000);
+    if (!selectedWidget || !isTextAlertTab || !textAlertSettings || textAlertSettings.presetGroups.length <= 1) {
+      alert('최소 1개의 테마가 필요합니다.');
       return;
     }
-    if (!showDeleteConfirm) {
-      setShowDeleteConfirm(true);
-      setTimeout(() => setShowDeleteConfirm(false), 3000);
-      return;
+    if (confirm('이 테마를 삭제하시겠습니까?')) {
+      const updatedGroups = textAlertSettings.presetGroups.filter((g: any) => g.id !== textAlertSettings.activeGroupId);
+      updateSettings(selectedWidget.id, { 
+        textAlert: {
+          ...textAlertSettings,
+          presetGroups: updatedGroups,
+          activeGroupId: updatedGroups[0].id,
+          editingPresetId: updatedGroups[0].presets[0].id
+        }
+      });
     }
-    const newGroups = presetGroups.filter(g => g.id !== activeGroupId);
-    setPresetGroups(newGroups);
-    setActiveGroupId(newGroups[0].id);
-    setShowDeleteConfirm(false);
-  };
-
-  const startEditingGroup = () => {
-    setEditingGroupId(activeGroupId);
-    setEditingGroupName(activeGroup.name);
-  };
-
-  const saveEditingGroup = () => {
-    if (!editingGroupName.trim()) return;
-    setPresetGroups(presetGroups.map(g => g.id === activeGroupId ? { ...g, name: editingGroupName } : g));
-    setEditingGroupId(null);
-  };
-
-  const handleAddGroupFromModal = () => {
-    const newId = 'g' + Date.now();
-    const newName = '새 프리셋 그룹';
-    setPresetGroups([...presetGroups, { 
-      id: newId, 
-      name: newName, 
-      presets: [
-        { id: 'p' + Date.now() + '1', condition: '후원금액 1,000 cash 이상', active: true },
-        { id: 'p' + Date.now() + '2', condition: '후원금액 10,000 cash 이상', active: true }
-      ] 
-    }]);
-    setEditingGroupId(newId);
-    setEditingGroupName(newName);
-  };
-
-  const handleDeleteGroupFromModal = (id: string) => {
-    if (presetGroups.length <= 1) return;
-    
-    if (deletingGroupId !== id) {
-      setDeletingGroupId(id);
-      setTimeout(() => setDeletingGroupId(null), 3000);
-      return;
-    }
-    
-    const newGroups = presetGroups.filter(g => g.id !== id);
-    setPresetGroups(newGroups);
-    if (activeGroupId === id) {
-      setActiveGroupId(newGroups[0].id);
-    }
-    setDeletingGroupId(null);
-  };
-
-  const startEditingGroupFromModal = (id: string, name: string) => {
-    setEditingGroupId(id);
-    setEditingGroupName(name);
-  };
-
-  const saveEditingGroupFromModal = () => {
-    if (!editingGroupName.trim() || !editingGroupId) return;
-    setPresetGroups(presetGroups.map(g => g.id === editingGroupId ? { ...g, name: editingGroupName } : g));
-    setEditingGroupId(null);
   };
 
   const handleAddPreset = () => {
+    if (!selectedWidget || !isTextAlertTab || !activeGroup || !textAlertSettings) return;
+    const newPresetId = `p-${Date.now()}`;
     const newPreset = {
-      id: 'p' + Date.now(),
-      condition: '',
-      active: true
+      ...editingPreset,
+      id: newPresetId,
+      minAmount: (editingPreset?.minAmount || 0) + 1000
     };
-    setPresetGroups(presetGroups.map(g => g.id === activeGroupId ? { ...g, presets: [...g.presets, newPreset] } : g));
+    
+    const updatedGroups = textAlertSettings.presetGroups.map((group: any) => {
+      if (group.id === textAlertSettings.activeGroupId) {
+        return { ...group, presets: [...group.presets, newPreset] };
+      }
+      return group;
+    });
+
+    updateSettings(selectedWidget.id, { 
+      textAlert: {
+        ...textAlertSettings,
+        presetGroups: updatedGroups,
+        editingPresetId: newPresetId
+      }
+    });
   };
 
   const handleDeletePreset = (presetId: string) => {
-    setPresetGroups(presetGroups.map(g => g.id === activeGroupId ? { ...g, presets: g.presets.filter(p => p.id !== presetId) } : g));
-  };
-
-  const handlePresetConditionChange = (presetId: string, newCondition: string) => {
-    setPresetGroups(presetGroups.map(g => g.id === activeGroupId ? {
-      ...g,
-      presets: g.presets.map(p => p.id === presetId ? { ...p, condition: newCondition } : p)
-    } : g));
-  };
-
-  const handleTestPlay = () => {
-    setShowPreviewAnim(false);
-    setTimeout(() => setShowPreviewAnim(true), 100);
-  };
-
-  const handleDropdownSelect = () => {
-    if (tempSelectedGroupId) {
-      setActiveGroupId(tempSelectedGroupId);
+    if (!selectedWidget || !isTextAlertTab || !activeGroup || activeGroup.presets.length <= 1 || !textAlertSettings) {
+      alert('최소 1개의 금액 설정이 필요합니다.');
+      return;
     }
-    setIsDropdownOpen(false);
-  };
+    if (confirm('이 금액 설정을 삭제하시겠습니까?')) {
+      const updatedGroups = textAlertSettings.presetGroups.map((group: any) => {
+        if (group.id === textAlertSettings.activeGroupId) {
+          const filteredPresets = group.presets.filter((p: any) => p.id !== presetId);
+          return { ...group, presets: filteredPresets };
+        }
+        return group;
+      });
 
-  const toggleDropdown = () => {
-    if (!isDropdownOpen) {
-      setTempSelectedGroupId(activeGroupId);
+      const newEditingId = textAlertSettings.editingPresetId === presetId 
+        ? updatedGroups.find((g: any) => g.id === textAlertSettings.activeGroupId).presets[0].id 
+        : textAlertSettings.editingPresetId;
+
+      updateSettings(selectedWidget.id, { 
+        textAlert: {
+          ...textAlertSettings,
+          presetGroups: updatedGroups,
+          editingPresetId: newEditingId
+        }
+      });
     }
-    setIsDropdownOpen(!isDropdownOpen);
   };
 
-  return (
-    <div className="max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">통합알림창</h1>
+  const getWidgetPreviewSettings = (widget: Widget, isSelected: boolean) => {
+    if (widget.type === 'integrated-alert' && widget.settings.activeAlertTab === 'text-alert') {
+      const textSettings = widget.settings.textAlert;
+      if (!textSettings) return widget.settings;
       
-      <div className="flex gap-2 mb-8 border-b border-gray-200 pb-px">
-        <Tab active>후원 알림 설정</Tab>
-        <Tab>트위치 알림 설정</Tab>
-        <Tab>유튜브 알림 설정</Tab>
-      </div>
+      const group = textSettings.presetGroups?.find((g: any) => g.id === textSettings.activeGroupId);
+      if (isSelected) {
+        return group?.presets.find((p: any) => p.id === textSettings.editingPresetId) || widget.settings;
+      } else {
+        return group?.presets[0] || widget.settings;
+      }
+    }
+    return widget.settings;
+  };
 
-      <div className={`flex items-start relative transition-all duration-300 ease-in-out ${layoutMode === 'pip' ? 'block' : ''}`}>
-        
-        <div className={`transition-all duration-300 ease-in-out ${
-          layoutMode === 'pip' ? 'w-full max-w-4xl' : 
-          (layoutMode === 'collapse' && isCollapsed) ? 'w-full' : 'flex-1 min-w-0'
-        }`}>
+  return (
+    <div className="flex flex-col h-screen bg-[#0f1115] text-slate-200 font-sans overflow-hidden">
+      {/* Top Navigation Bar */}
+      <header className="h-14 bg-[#181a20] border-b border-slate-800 flex items-center justify-between px-4 shrink-0 z-10">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-blue-500 font-bold text-lg tracking-tight">
+            <Monitor size={20} />
+            <span>Toonation Studio</span>
+          </div>
+          <div className="h-4 w-px bg-slate-700 mx-2"></div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-slate-300">통합 전체화면 위젯</span>
+            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">1920x1080</span>
+          </div>
+          <div className="h-4 w-px bg-slate-700 mx-2"></div>
           
-          <div className="flex items-center gap-2 mb-6">
-            <div className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-md font-semibold text-sm flex items-center gap-2">
-              <span className="w-4 h-4 bg-blue-500 text-white rounded flex items-center justify-center text-[10px]">T</span>
-              텍스트 후원 알림
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <Section title="프리셋 그룹 설정" subtitle="방송 주제별로 프리셋을 그룹화하여 다르게 적용할 수 있습니다.">
-              {/* Group Selection Row (Compact) */}
-              <div className="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold text-gray-700 flex items-center gap-2 shrink-0">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                    현재 그룹
-                  </span>
-                  
-                  {/* Custom Dropdown */}
-                  <div className="relative">
-                    <button
-                      onClick={toggleDropdown}
-                      className="flex items-center justify-between border border-gray-300 rounded-md px-3 py-2 text-sm font-medium outline-none focus:border-blue-500 bg-white w-64 shadow-sm cursor-pointer hover:bg-gray-50 transition-colors"
-                    >
-                      <span className="truncate">{activeGroup.name}</span>
-                      <ChevronRight size={14} className={`transform transition-transform ${isDropdownOpen ? 'rotate-90' : ''}`} />
-                    </button>
-
-                    {isDropdownOpen && (
-                      <>
-                        <div 
-                          className="fixed inset-0 z-10" 
-                          onClick={() => setIsDropdownOpen(false)}
-                        ></div>
-                        <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-20 overflow-hidden flex flex-col">
-                          <div className="max-h-60 overflow-y-auto p-2 space-y-1">
-                            {presetGroups.map(g => (
-                              <label 
-                                key={g.id} 
-                                className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors ${tempSelectedGroupId === g.id ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50 text-gray-700'}`}
-                              >
-                                <input 
-                                  type="radio" 
-                                  name="presetGroup" 
-                                  value={g.id}
-                                  checked={tempSelectedGroupId === g.id}
-                                  onChange={() => setTempSelectedGroupId(g.id)}
-                                  className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                                />
-                                <span className="text-sm font-medium truncate">{g.name}</span>
-                              </label>
-                            ))}
-                          </div>
-                          <div className="p-2 border-t border-gray-100 bg-gray-50">
-                            <button
-                              onClick={handleDropdownSelect}
-                              className="w-full py-2 bg-blue-500 text-white rounded-md text-sm font-bold hover:bg-blue-600 transition-colors shadow-sm"
-                            >
-                              선택
-                            </button>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setIsGroupModalOpen(true)}
-                  className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 flex items-center gap-2 shadow-sm transition-colors shrink-0"
-                >
-                  <Settings size={14} /> 그룹 관리
-                </button>
-              </div>
-
-              {/* Presets in Active Group */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between mb-3 px-1">
-                  <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                    그룹 내 프리셋 목록
-                  </h3>
-                  <button onClick={handleAddPreset} className="text-sm text-blue-600 font-bold hover:text-blue-700 flex items-center gap-1 transition-colors">
-                    <Plus size={14} strokeWidth={3} /> 프리셋 추가
-                  </button>
-                </div>
-                
-                {activeGroup.presets.length === 0 ? (
-                  <div className="text-center py-8 text-sm text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                    등록된 프리셋이 없습니다. 새 프리셋을 추가해보세요.
-                  </div>
-                ) : (
-                  activeGroup.presets.map((preset, index) => (
-                    <div key={preset.id} className="flex items-center gap-3 w-full p-3 border border-gray-200 rounded-lg bg-white hover:border-blue-400 hover:shadow-sm transition-all group">
-                      <div className="w-20 shrink-0 font-bold text-sm text-gray-700">{index + 1}번 프리셋</div>
-                      <input 
-                        type="text" 
-                        value={preset.condition} 
-                        onChange={(e) => handlePresetConditionChange(preset.id, e.target.value)}
-                        className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-50 text-gray-600 focus:bg-white focus:border-blue-500 outline-none transition-colors" 
-                        placeholder="조건을 입력하세요 (예: 후원금액 1,000 cash 이상)"
-                      />
-                      <Toggle active={preset.active} />
-                      <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors">설정 ▼</button>
-                      {index >= 2 ? (
-                        <button onClick={() => handleDeletePreset(preset.id)} className="p-2 text-gray-400 hover:text-red-500 rounded-md hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100" title="프리셋 삭제">
-                          <X size={16} />
-                        </button>
-                      ) : (
-                        <div className="w-8"></div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </Section>
-
-            <Section title="기본 설정">
-              <FormRow label="알림 표시">
-                <Toggle active={true} />
-              </FormRow>
-              
-              <FormRow label="알림 레이아웃">
-                <div className="flex gap-3">
-                  <button className="flex flex-col items-center justify-center w-20 h-20 border-2 border-blue-500 rounded-lg bg-blue-50 text-blue-600 gap-1">
-                    <div className="w-8 h-8 bg-blue-200 rounded flex items-center justify-center"><ImageIcon size={16} /></div>
-                    <span className="text-xs font-bold">TEXT</span>
-                  </button>
-                  <button className="flex flex-col items-center justify-center w-20 h-20 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 gap-1">
-                    <span className="text-sm font-bold">TEXT</span>
-                  </button>
-                  <button className="flex items-center justify-center w-24 h-20 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 gap-2">
-                    <div className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center"><ImageIcon size={12} /></div>
-                    <span className="text-xs font-bold">TEXT</span>
-                  </button>
-                </div>
-              </FormRow>
-
-              <FormRow label="알림 효과">
-                <div className="flex gap-3 w-full">
-                  <select className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500">
-                    <option>Fade In</option>
-                  </select>
-                  <select className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500">
-                    <option>Fade Out</option>
-                  </select>
-                </div>
-              </FormRow>
-
-              <FormRow label="텍스트 애니메이션">
-                <div className="flex gap-3 w-full">
-                  <select className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500">
-                    <option>Pulse</option>
-                  </select>
-                  <button className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm hover:bg-gray-50">텍스트 효과 미리보기</button>
-                </div>
-              </FormRow>
-
-              <FormRow label="알림 이미지">
-                <div className="flex gap-3">
-                  <div className="relative w-20 h-20 border border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-                    <img src="https://cdn-icons-png.flaticon.com/512/4780/4780939.png" alt="cat" className="w-12 h-12" />
-                    <button className="absolute -bottom-2 -right-2 w-6 h-6 bg-gray-800 text-white rounded-full flex items-center justify-center hover:bg-gray-900"><X size={12} /></button>
-                  </div>
-                  <button className="w-20 h-20 border border-dashed border-gray-400 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600">
-                    <Plus size={24} />
-                  </button>
-                </div>
-              </FormRow>
-
-              <FormRow label="알림 효과음">
-                <div className="flex items-center gap-3 w-full">
-                  <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 flex-1">
-                    <span className="text-gray-600 truncate">sound_effect_01.mp3</span>
-                    <button className="ml-auto text-gray-400 hover:text-gray-600"><X size={14} /></button>
-                  </div>
-                  <button className="p-2.5 bg-gray-600 text-white rounded-md hover:bg-gray-700"><Play size={16} fill="currentColor" /></button>
-                  <button className="p-2.5 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-600"><Plus size={16} /></button>
-                </div>
-              </FormRow>
-            </Section>
-            
-            <div className="h-32"></div>
-          </div>
-        </div>
-
-        {/* Collapse Toggle Button & Divider */}
-        {layoutMode === 'collapse' && (
-          <div className="relative w-0 z-20">
-            {/* Vertical Divider Line */}
-            <div className="absolute top-0 bottom-0 w-px bg-gray-200"></div>
-            
-            {/* Sticky Toggle Button */}
-            <div className="sticky top-[50vh] -translate-y-1/2 -ml-3.5">
-              <button 
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                className="w-7 h-20 bg-white border border-gray-200 rounded-full shadow-sm flex items-center justify-center text-gray-400 hover:text-blue-500 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md transition-all group"
-              >
-                <div className="flex flex-col items-center gap-1">
-                  <div className="w-1 h-1 rounded-full bg-gray-300 group-hover:bg-blue-300 transition-colors"></div>
-                  {isCollapsed ? <ChevronLeft size={14} strokeWidth={3} /> : <ChevronRight size={14} strokeWidth={3} />}
-                  <div className="w-1 h-1 rounded-full bg-gray-300 group-hover:bg-blue-300 transition-colors"></div>
-                </div>
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className={`transition-all duration-300 ease-in-out flex justify-end ${
-          layoutMode === 'pip' 
-            ? 'fixed bottom-8 right-28 w-[400px] z-40 shadow-2xl bg-white rounded-xl border border-gray-200 overflow-hidden' 
-            : `shrink-0 sticky top-24 overflow-hidden ${
-                (layoutMode === 'collapse' && isCollapsed)
-                  ? 'w-0 opacity-0 ml-0'
-                  : 'w-[360px] ml-8 opacity-100'
-              }`
-        }`}>
-          
-          <div className={`${layoutMode === 'pip' ? 'w-full' : 'w-[360px] shrink-0'} bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden`}>
-            <div className="bg-gray-800 text-white px-4 py-3 flex items-center justify-between">
-              <span className="text-sm font-semibold flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                미리보기
-              </span>
-              {layoutMode === 'pip' && (
-                <button onClick={() => setLayoutMode('split')} className="text-gray-400 hover:text-white">
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-
-            <div className="aspect-video bg-[#111] relative flex items-center justify-center overflow-hidden">
-              <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '16px 16px' }}></div>
-              
-              <div className={`relative z-10 flex flex-col items-center transition-all duration-500 ${showPreviewAnim ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'}`}>
-                <img src="https://cdn-icons-png.flaticon.com/512/4780/4780939.png" alt="alert" className="w-24 h-24 drop-shadow-lg mb-4 animate-bounce" style={{ animationDuration: '2s' }} />
-                <div className="bg-black/60 backdrop-blur-sm px-6 py-2 rounded-full border border-white/10 shadow-xl">
-                  <p className="text-white font-bold text-lg">
-                    <span className="text-[#18C9FF]">투네이션</span>님이 <span className="text-[#18C9FF]">1,000원</span>을 후원하셨습니다!
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-white border-t border-gray-100">
-              <div className="flex gap-2">
-                <button 
-                  onClick={handleTestPlay}
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
-                >
-                  <Play size={16} fill="currentColor" />
-                  후원 테스트
-                </button>
-              </div>
-              
-              {layoutMode !== 'pip' && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <p className="text-xs text-gray-500 mb-2 font-medium">알림창 URL</p>
-                  <div className="flex gap-2">
-                    <input type="text" value="https://toon.at/widget/alertbox/..." readOnly className="flex-1 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-xs text-gray-500" />
-                    <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded text-xs font-medium text-gray-700">복사</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Group Management Modal */}
-      {isGroupModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
-              <h2 className="text-lg font-bold text-gray-800">프리셋 그룹 관리</h2>
-              <button onClick={() => setIsGroupModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto flex-1 space-y-2">
-              {presetGroups.map(g => (
-                <div
-                  key={g.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, g.id)}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, g.id)}
-                  onDragEnd={handleDragEnd}
-                  className={`flex items-center gap-3 p-3 rounded-lg border bg-white transition-all ${draggedGroupId === g.id ? 'opacity-40 scale-[0.98]' : 'hover:border-blue-300'}`}
-                >
-                  <div className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600" title="드래그하여 순서 변경">
-                    <GripVertical size={16} />
-                  </div>
-
-                  {editingGroupId === g.id ? (
-                    <div className="flex-1 flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={editingGroupName}
-                        onChange={(e) => setEditingGroupName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') saveEditingGroupFromModal();
-                          if (e.key === 'Escape') setEditingGroupId(null);
-                        }}
-                        className="flex-1 border border-blue-500 rounded px-2 py-1.5 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-200"
-                        autoFocus
-                      />
-                      <button onClick={saveEditingGroupFromModal} className="p-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"><Check size={14}/></button>
-                      <button onClick={() => setEditingGroupId(null)} className="p-1.5 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 transition-colors"><X size={14}/></button>
-                    </div>
-                  ) : (
-                    <>
-                      <span className="flex-1 text-sm font-medium text-gray-700">{g.name}</span>
-                      <button onClick={() => startEditingGroupFromModal(g.id, g.name)} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded transition-colors" title="이름 수정">
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteGroupFromModal(g.id)}
-                        disabled={presetGroups.length <= 1}
-                        className={`p-1.5 rounded transition-colors ${
-                          presetGroups.length <= 1 ? 'text-gray-300 cursor-not-allowed' :
-                          deletingGroupId === g.id ? 'bg-red-500 text-white hover:bg-red-600' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
-                        }`}
-                        title={presetGroups.length <= 1 ? "최소 1개의 그룹이 필요합니다" : "그룹 삭제"}
-                      >
-                        {deletingGroupId === g.id ? <span className="text-xs font-bold px-1">삭제?</span> : <X size={14} />}
-                      </button>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={handleAddGroupFromModal}
-                className="w-full py-2.5 bg-white border border-dashed border-gray-300 text-gray-600 rounded-lg text-sm font-bold hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
-              >
-                <Plus size={16} /> 새 그룹 추가
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------
-// Reusable UI Components
-// ---------------------------------------------------------
-function NavItem({ icon, label, active, hasSub, onClick }: any) {
-  return (
-    <div onClick={onClick} className={`flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${active ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-      <div className="flex items-center gap-3">
-        {icon}
-        <span className="text-sm">{label}</span>
-      </div>
-      {hasSub && <ChevronRight size={14} className="opacity-50" />}
-    </div>
-  );
-}
-
-function ModeButton({ children, active, onClick }: any) {
-  return (
-    <button 
-      onClick={onClick}
-      className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${active ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function Tab({ children, active }: any) {
-  return (
-    <button className={`px-5 py-2.5 text-sm font-bold rounded-t-lg border-b-2 transition-colors ${active ? 'border-gray-800 text-gray-900 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
-      {children}
-    </button>
-  );
-}
-
-function Section({ title, subtitle, children }: any) {
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-      <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-        <h2 className="text-base font-bold text-gray-800">{title}</h2>
-        {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
-      </div>
-      <div className="p-6 space-y-6">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function FormRow({ label, children }: any) {
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-      <label className="w-40 shrink-0 text-sm font-medium text-gray-700">{label}</label>
-      <div className="flex-1 flex items-center">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function Toggle({ active }: { active: boolean }) {
-  return (
-    <div className={`w-11 h-6 rounded-full p-1 cursor-pointer transition-colors ${active ? 'bg-blue-500' : 'bg-gray-300'}`}>
-      <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${active ? 'translate-x-5' : 'translate-x-0'}`}></div>
-    </div>
-  );
-}
-
-function Tag({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 border border-gray-200 rounded-full text-xs text-gray-600">
-      {label}
-      <button className="hover:text-gray-900"><X size={12} /></button>
-    </div>
-  );
-}
-
-function StyleCard({ title, active }: { title: string, active?: boolean }) {
-  return (
-    <div className={`border rounded-lg p-3 cursor-pointer transition-all ${active ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}>
-      <div className="h-16 bg-gray-800 rounded mb-2 flex flex-col justify-center px-2 gap-1 overflow-hidden">
-        <div className="w-3/4 h-2 bg-gray-600 rounded"></div>
-        <div className="w-1/2 h-2 bg-gray-600 rounded"></div>
-      </div>
-      <p className={`text-xs text-center font-medium ${active ? 'text-blue-700' : 'text-gray-600'}`}>{title}</p>
-    </div>
-  );
-}
-
-function ChatMessage({ platform, name, message, color }: any) {
-  return (
-    <div className="flex items-start gap-2 text-sm">
-      <span className="w-4 h-4 rounded bg-gray-700 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{platform}</span>
-      <span className="font-bold shrink-0" style={{ color }}>{name}</span>
-      <span className="text-white break-all">{message}</span>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------
-// Floating Action Buttons Component
-// ---------------------------------------------------------
-function FloatingActionButtons() {
-  const [showTooltip, setShowTooltip] = useState(true);
-
-  return (
-    <div className="fixed bottom-8 right-8 z-50 flex flex-col gap-3 items-center">
-      {/* Discord Button */}
-      <button className="w-12 h-12 bg-white rounded-full shadow-lg border border-gray-100 flex items-center justify-center text-[#5865F2] hover:bg-gray-50 transition-colors">
-        <MessageCircle size={24} fill="currentColor" />
-      </button>
-
-      {/* Remote Control Button with Tooltip */}
-      <div className="relative flex items-center justify-center">
-        {/* Tooltip */}
-        {showTooltip && (
-          <div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 w-72 bg-white rounded-xl shadow-xl border border-gray-100 p-4 flex gap-3 animate-fade-in">
-            <div className="w-5 h-5 rounded-full bg-gray-400 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">i</div>
-            <div>
-              <h4 className="text-sm font-bold text-gray-800 mb-1">방송을 할 때 리모컨을 사용하세요!</h4>
-              <p className="text-xs text-gray-500 mb-3">중요한 후원 기능들을 컨트롤 할 수 있습니다.</p>
-              <div className="flex gap-2">
-                <button className="flex-1 py-1.5 px-3 bg-white border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50">웹 리모컨</button>
-                <button className="flex-1 py-1.5 px-3 bg-blue-500 text-white rounded-md text-xs font-medium hover:bg-blue-600">설치형 리모컨</button>
-              </div>
-            </div>
-            {/* Tooltip Arrow */}
-            <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-4 h-4 bg-white border-r border-t border-gray-100 transform rotate-45"></div>
-            {/* Close Tooltip */}
-            <button onClick={() => setShowTooltip(false)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
-              <X size={14} />
+          {/* Preset Selector */}
+          <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-lg p-1">
+            <select 
+              value={activePresetId}
+              onChange={(e) => loadPreset(e.target.value)}
+              className="bg-transparent border-none text-sm font-medium text-slate-200 focus:outline-none px-2 py-1 cursor-pointer appearance-none pr-6 relative"
+              style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center', backgroundSize: '16px' }}
+            >
+              {presets.map(p => <option key={p.id} value={p.id} className="bg-slate-900">{p.name}</option>)}
+            </select>
+            <div className="w-px h-4 bg-slate-700 mx-1"></div>
+            <button onClick={createNewPreset} className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors" title="새 프리셋">
+              <Plus size={14} />
+            </button>
+            <button onClick={() => deletePreset(activePresetId)} className="p-1.5 hover:bg-red-500/20 rounded text-slate-400 hover:text-red-400 transition-colors" title="현재 프리셋 삭제">
+              <Trash2 size={14} />
             </button>
           </div>
-        )}
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <button className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded transition-colors">
+            <Play size={16} />
+            <span>시뮬레이션</span>
+          </button>
+          <button onClick={saveCurrentPreset} className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors shadow-lg shadow-blue-900/20">
+            <Save size={16} />
+            <span>저장하기</span>
+          </button>
+          <button className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded transition-colors shadow-lg shadow-emerald-900/20">
+            <span>URL 복사</span>
+          </button>
+        </div>
+      </header>
 
-        {/* Remote Button */}
-        <button className="w-14 h-16 bg-blue-600 rounded-2xl shadow-lg shadow-blue-600/30 flex flex-col items-center justify-center text-white hover:bg-blue-700 transition-colors gap-1">
-          <Smartphone size={20} />
-          <span className="text-[10px] font-bold">리모컨<br/>실행</span>
-        </button>
+      {/* Main Workspace */}
+      <div className="flex flex-1 overflow-hidden">
+        
+        {/* Left Sidebar - Tools & Layers */}
+        <aside className="w-64 bg-[#181a20] border-r border-slate-800 flex flex-col shrink-0 z-10">
+          <div className="flex border-b border-slate-800">
+            <button 
+              className={`flex-1 py-3 text-xs font-bold transition-colors flex flex-col items-center gap-1 ${leftTab === 'alerts' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
+              onClick={() => setLeftTab('alerts')}
+            >
+              <BellRing size={16} />
+              통합 알림창
+            </button>
+            <button 
+              className={`flex-1 py-3 text-xs font-bold transition-colors flex flex-col items-center gap-1 ${leftTab === 'widgets' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
+              onClick={() => setLeftTab('widgets')}
+            >
+              <LayoutGrid size={16} />
+              위젯
+            </button>
+            <button 
+              className={`flex-1 py-3 text-xs font-bold transition-colors flex flex-col items-center gap-1 ${leftTab === 'layers' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
+              onClick={() => setLeftTab('layers')}
+            >
+              <Layers size={16} />
+              레이어
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
+            {leftTab === 'alerts' && (
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-slate-500 mb-3 px-1">통합 알림창 (Integrated Alerts)</div>
+                {ALERTS_MENU.map(alert => (
+                  <button
+                    key={alert.id}
+                    className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800/30 hover:bg-slate-700/50 border border-slate-700/50 hover:border-slate-500 transition-all text-left group"
+                    onClick={() => handleAlertClick(alert.id)}
+                  >
+                    <div className="p-2 bg-slate-800 rounded-md text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-300 transition-colors shrink-0">
+                      <alert.icon size={18} />
+                    </div>
+                    <div className="overflow-hidden">
+                      <div className="text-sm font-medium text-slate-200 truncate">{alert.name}</div>
+                      <div className="text-[10px] text-slate-500 truncate">{alert.desc}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {leftTab === 'widgets' && (
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-slate-500 mb-3 px-1">개별 위젯 (Individual Widgets)</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {WIDGETS_MENU.map(widget => (
+                    <button
+                      key={widget.id}
+                      className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg bg-slate-800/30 hover:bg-slate-700/50 border border-slate-700/50 hover:border-slate-500 transition-all group"
+                      onClick={() => handleWidgetClick(widget)}
+                    >
+                      <widget.icon size={20} className="text-slate-400 group-hover:text-blue-400 transition-colors" />
+                      <span className="text-xs font-medium text-slate-300 text-center">{widget.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {leftTab === 'layers' && (
+              <div className="space-y-1">
+                {/* Render layers in reverse order so top layer is at the top of the list */}
+                {[...widgets].reverse().map((widget) => (
+                  <div 
+                    key={widget.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, widget.id)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, widget.id)}
+                    className={`flex items-center justify-between p-2 rounded cursor-pointer border ${selectedId === widget.id ? 'bg-blue-500/10 border-blue-500/50 text-blue-400' : 'bg-transparent border-transparent text-slate-300 hover:bg-slate-800'} ${draggedWidgetId === widget.id ? 'opacity-50' : ''}`}
+                    onClick={() => setSelectedId(widget.id)}
+                  >
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <div className="cursor-grab active:cursor-grabbing text-slate-500 hover:text-slate-300">
+                        <GripVertical size={14} />
+                      </div>
+                      <Layout size={14} className="shrink-0 opacity-70" />
+                      <span className="text-sm truncate">{widget.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button 
+                        className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200"
+                        onClick={(e) => { e.stopPropagation(); updateWidget(widget.id, { visible: !widget.visible }); }}
+                      >
+                        {widget.visible ? <Eye size={14} /> : <EyeOff size={14} />}
+                      </button>
+                      <button 
+                        className="p-1 hover:bg-red-500/20 rounded text-slate-400 hover:text-red-400"
+                        onClick={(e) => { e.stopPropagation(); deleteWidget(widget.id); }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {widgets.length === 0 && (
+                  <div className="text-center py-8 text-sm text-slate-500">
+                    추가된 위젯이 없습니다.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* Middle Sidebar - Properties */}
+        <aside className="w-80 bg-[#181a20] border-r border-slate-800 flex flex-col shrink-0 z-10">
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {selectedWidget ? (
+            <div className="pb-6">
+              <div className="p-4 border-b border-slate-800 flex items-center gap-3 bg-slate-800/20 mb-3">
+                <div className="p-2 bg-blue-500/20 rounded text-blue-400">
+                  <Settings size={20} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-white">{selectedWidget.name}</h2>
+                  <p className="text-[11px] text-slate-400">ID: {selectedWidget.id}</p>
+                </div>
+              </div>
+
+              <div className="px-3 space-y-3">
+                <Accordion title="위치 및 크기 (Transform)" defaultOpen={false}>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormGroup label="X 위치">
+                      <Input type="number" value={selectedWidget.x} onChange={(e: any) => updateWidget(selectedWidget.id, { x: Number(e.target.value) })} />
+                    </FormGroup>
+                    <FormGroup label="Y 위치">
+                      <Input type="number" value={selectedWidget.y} onChange={(e: any) => updateWidget(selectedWidget.id, { y: Number(e.target.value) })} />
+                    </FormGroup>
+                    <FormGroup label="너비 (Width)">
+                      <Input type="number" value={selectedWidget.width} onChange={(e: any) => updateWidget(selectedWidget.id, { width: Number(e.target.value) })} />
+                    </FormGroup>
+                    <FormGroup label="높이 (Height)">
+                      <Input type="number" value={selectedWidget.height} onChange={(e: any) => updateWidget(selectedWidget.id, { height: Number(e.target.value) })} />
+                    </FormGroup>
+                  </div>
+                </Accordion>
+
+              {isTextAlertTab && activeGroup && textAlertSettings && (
+                <Accordion title="테마 및 금액 설정 (Themes & Amounts)">
+                  <div className="space-y-4">
+                    {/* Theme Selection */}
+                    <FormGroup label="방송 테마 (Preset Group)">
+                      <div className="flex items-center gap-2">
+                        <Select 
+                          value={textAlertSettings.activeGroupId} 
+                          onChange={(e: any) => {
+                            const group = textAlertSettings.presetGroups.find((g: any) => g.id === e.target.value);
+                            updateSettings(selectedWidget.id, { 
+                              textAlert: {
+                                ...textAlertSettings,
+                                activeGroupId: e.target.value, 
+                                editingPresetId: group.presets[0].id 
+                              }
+                            });
+                          }}
+                          options={textAlertSettings.presetGroups.map((g: any) => ({ label: g.name, value: g.id }))} 
+                        />
+                        <button onClick={handleAddGroup} className="p-2 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition-colors" title="새 테마 추가"><Plus size={16}/></button>
+                        <button onClick={handleDeleteGroup} className="p-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded transition-colors" title="현재 테마 삭제"><Trash2 size={16}/></button>
+                      </div>
+                    </FormGroup>
+
+                    {/* Amount Presets */}
+                    <FormGroup label="금액별 설정 (Amount Presets)">
+                      <div className="space-y-2">
+                        {[...activeGroup.presets].sort((a,b) => a.minAmount - b.minAmount).map((preset: any) => (
+                          <div 
+                            key={preset.id} 
+                            className={`flex items-center justify-between p-2 rounded border cursor-pointer transition-colors ${textAlertSettings.editingPresetId === preset.id ? 'border-blue-500 bg-blue-500/10 text-blue-400' : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-500'}`}
+                            onClick={() => updateSettings(selectedWidget.id, { 
+                              textAlert: {
+                                ...textAlertSettings,
+                                editingPresetId: preset.id 
+                              }
+                            })}
+                          >
+                            <span className="text-sm font-medium">{preset.minAmount.toLocaleString()} 캐시 이상</span>
+                            <button onClick={(e) => { e.stopPropagation(); handleDeletePreset(preset.id); }} className="p-1 text-slate-500 hover:text-red-400 rounded hover:bg-slate-700 transition-colors"><Trash2 size={14}/></button>
+                          </div>
+                        ))}
+                        <button onClick={handleAddPreset} className="w-full py-2 border border-dashed border-slate-600 text-slate-400 hover:text-white hover:border-slate-400 hover:bg-slate-800 rounded text-sm flex items-center justify-center gap-2 transition-all">
+                          <Plus size={14} /> 새 금액 구간 추가
+                        </button>
+                      </div>
+                    </FormGroup>
+                  </div>
+                </Accordion>
+              )}
+
+              {/* Dynamic Settings based on Widget Type (Mocking Text Alert settings from PDF) */}
+              <Accordion title="기본 설정 (General)">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">위젯 사용하기</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={selectedWidget.visible} onChange={() => updateWidget(selectedWidget.id, { visible: !selectedWidget.visible })} />
+                      <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                  </div>
+                  <FormGroup label="최소 후원 캐시">
+                    <div className="flex items-center gap-2">
+                      <Input type="number" value={editingPreset?.minAmount || 0} onChange={(e: any) => handleSettingChange({ minAmount: Number(e.target.value) })} />
+                      <span className="text-sm text-slate-400 shrink-0">캐시</span>
+                    </div>
+                  </FormGroup>
+                </div>
+              </Accordion>
+
+              <Accordion title="레이아웃 및 효과 (Layout & Effects)">
+                <div className="space-y-4">
+                  <FormGroup label="알림 레이아웃">
+                    <div className="grid grid-cols-3 gap-2">
+                      {['img-top', 'img-left', 'img-right'].map(layout => (
+                        <button 
+                          key={layout}
+                          className={`h-12 border rounded flex flex-col items-center justify-center gap-1 ${editingPreset?.layout === layout ? 'border-blue-500 bg-blue-500/10 text-blue-400' : 'border-slate-700 bg-slate-900 text-slate-500 hover:border-slate-500'}`}
+                          onClick={() => handleSettingChange({ layout })}
+                        >
+                          <ImageIcon size={14} />
+                          <div className="w-6 h-1 bg-current rounded-full opacity-50"></div>
+                        </button>
+                      ))}
+                    </div>
+                  </FormGroup>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormGroup label="등장 효과 (In)">
+                      <Select value={editingPreset?.animationIn || 'Fade In'} onChange={(e: any) => handleSettingChange({ animationIn: e.target.value })} options={['Fade In', 'Slide Up', 'Zoom In', 'Bounce']} />
+                    </FormGroup>
+                    <FormGroup label="퇴장 효과 (Out)">
+                      <Select value={editingPreset?.animationOut || 'Fade Out'} onChange={(e: any) => handleSettingChange({ animationOut: e.target.value })} options={['Fade Out', 'Slide Down', 'Zoom Out']} />
+                    </FormGroup>
+                  </div>
+                  <FormGroup label="텍스트 애니메이션">
+                    <Select value="Pulse" onChange={() => {}} options={['None', 'Pulse', 'Wave', 'Wiggle']} />
+                  </FormGroup>
+                </div>
+              </Accordion>
+
+              <Accordion title="미디어 (Media)">
+                <div className="space-y-4">
+                  <FormGroup label="알림 이미지">
+                    <div className="flex items-center gap-3">
+                      <div className="w-16 h-16 bg-slate-900 border border-slate-700 rounded flex items-center justify-center overflow-hidden">
+                        <img src="https://picsum.photos/seed/toon/100/100" alt="preview" className="w-full h-full object-cover opacity-80" referrerPolicy="no-referrer" />
+                      </div>
+                      <button className="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm py-2 rounded transition-colors">
+                        이미지 변경
+                      </button>
+                    </div>
+                  </FormGroup>
+                  <FormGroup label="알림 효과음">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 flex items-center gap-2 bg-slate-900 border border-slate-700 rounded px-3 py-2">
+                        <Music size={14} className="text-slate-500" />
+                        <span className="text-sm text-slate-300 truncate">default_alert.mp3</span>
+                      </div>
+                      <button className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded transition-colors">
+                        <Play size={16} className="text-slate-300" />
+                      </button>
+                    </div>
+                  </FormGroup>
+                  <FormGroup label="효과음 볼륨">
+                    <div className="flex items-center gap-3">
+                      <Volume2 size={16} className="text-slate-500" />
+                      <input type="range" min="0" max="100" defaultValue="50" className="flex-1 accent-blue-500" />
+                      <span className="text-xs text-slate-400 w-8 text-right">50%</span>
+                    </div>
+                  </FormGroup>
+                </div>
+              </Accordion>
+
+              <Accordion title="메시지 설정 (Message)">
+                <div className="space-y-4">
+                  <FormGroup label="메시지 템플릿">
+                    <textarea 
+                      value={editingPreset?.template || ''}
+                      onChange={(e) => handleSettingChange({ template: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 min-h-[80px] resize-none"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">사용 가능 변수: {'{닉네임}'}, {'{금액}'}</p>
+                  </FormGroup>
+                  
+                  <FormGroup label="알림 노출 시간 (초)">
+                    <Input type="number" value={editingPreset?.duration || 5} onChange={(e: any) => handleSettingChange({ duration: Number(e.target.value) })} />
+                  </FormGroup>
+
+                  <div className="h-px bg-slate-800 my-2"></div>
+
+                  <FormGroup label="폰트 설정">
+                    <Select value={editingPreset?.fontFamily || 'Pretendard'} onChange={(e: any) => handleSettingChange({ fontFamily: e.target.value })} options={['Pretendard', 'Noto Sans KR', 'Gmarket Sans', 'Maplestory']} />
+                  </FormGroup>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormGroup label="폰트 크기">
+                      <div className="flex items-center gap-2">
+                        <Input type="number" value={editingPreset?.fontSize || 36} onChange={(e: any) => handleSettingChange({ fontSize: Number(e.target.value) })} />
+                        <span className="text-xs text-slate-500">px</span>
+                      </div>
+                    </FormGroup>
+                    <FormGroup label="텍스트 정렬">
+                      <div className="flex items-center bg-slate-900 border border-slate-700 rounded overflow-hidden">
+                        <button className="flex-1 py-1.5 flex justify-center hover:bg-slate-800 text-slate-400 hover:text-white"><AlignLeft size={16} /></button>
+                        <button className="flex-1 py-1.5 flex justify-center bg-slate-800 text-white"><AlignCenter size={16} /></button>
+                        <button className="flex-1 py-1.5 flex justify-center hover:bg-slate-800 text-slate-400 hover:text-white"><AlignRight size={16} /></button>
+                      </div>
+                    </FormGroup>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormGroup label="기본 컬러">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded border border-slate-600 shrink-0" style={{ backgroundColor: editingPreset?.fontColor || '#ffffff' }}></div>
+                        <Input value={editingPreset?.fontColor || '#ffffff'} onChange={(e: any) => handleSettingChange({ fontColor: e.target.value })} className="uppercase font-mono text-xs" />
+                      </div>
+                    </FormGroup>
+                    <FormGroup label="강조 컬러 (닉네임/금액)">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded border border-slate-600 shrink-0" style={{ backgroundColor: editingPreset?.highlightColor || '#18C9FF' }}></div>
+                        <Input value={editingPreset?.highlightColor || '#18C9FF'} onChange={(e: any) => handleSettingChange({ highlightColor: e.target.value })} className="uppercase font-mono text-xs" />
+                      </div>
+                    </FormGroup>
+                  </div>
+                </div>
+              </Accordion>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-500 p-8 text-center min-h-full">
+              <MousePointer2 size={48} className="mb-4 opacity-20" />
+              <p className="text-sm">캔버스에서 위젯을 선택하거나<br/>왼쪽 패널에서 새 위젯을 추가하세요.</p>
+            </div>
+          )}
+          </div>
+          {stagedWidget && (
+            <div className="p-4 bg-[#181a20] border-t border-slate-800 shrink-0">
+              <button 
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
+                onClick={() => {
+                  const newId = `w-${Date.now()}`;
+                  const widgetToAdd = { ...stagedWidget, id: newId };
+                  setWidgets([...widgets, widgetToAdd]);
+                  setStagedWidget(null);
+                  setSelectedId(newId);
+                }}
+              >
+                <Plus size={18} />
+                캔버스에 위젯 추가하기
+              </button>
+            </div>
+          )}
+        </aside>
+
+        {/* Right Canvas Area - Preview */}
+        <main className="flex-1 relative bg-[#0a0b0e] overflow-hidden flex items-center justify-center p-8">
+          {/* Dot Grid Background */}
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#475569 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+          
+          {/* 16:9 Canvas Container */}
+          <div 
+            ref={canvasRef}
+            className="relative bg-black/40 border border-slate-700/50 shadow-2xl overflow-hidden ring-1 ring-white/5"
+            style={{ width: '100%', maxWidth: '1280px', aspectRatio: '16/9' }}
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) {
+                setSelectedId(null);
+                setStagedWidget(null);
+              }
+            }}
+          >
+            {/* Render Widgets */}
+            {widgets.filter(w => w.visible).map((widget, index) => {
+              const previewSettings = getWidgetPreviewSettings(widget, selectedId === widget.id);
+              return (
+              <div
+                key={widget.id}
+                className={`absolute border-2 cursor-move flex flex-col items-center justify-center bg-slate-800/80 backdrop-blur-sm transition-colors ${selectedId === widget.id ? 'border-blue-500' : 'border-dashed border-slate-600 hover:border-slate-400'}`}
+                style={{
+                  left: `${(widget.x / 1920) * 100}%`,
+                  top: `${(widget.y / 1080) * 100}%`,
+                  width: `${(widget.width / 1920) * 100}%`,
+                  height: `${(widget.height / 1080) * 100}%`,
+                  zIndex: index + 10,
+                }}
+                onMouseDown={(e) => handleMouseDown(e, widget.id)}
+              >
+                {/* Mock Content based on type */}
+                {widget.type === 'text-alert' && (
+                  <>
+                    <div className="w-16 h-16 bg-slate-700 rounded-full mb-4 flex items-center justify-center">
+                      <ImageIcon size={24} className="text-slate-500" />
+                    </div>
+                    <div 
+                      className="text-center px-4"
+                      style={{ 
+                        fontFamily: previewSettings.fontFamily || 'sans-serif',
+                        color: previewSettings.fontColor || '#fff',
+                        fontSize: 'clamp(12px, 2vw, 24px)'
+                      }}
+                    >
+                      <span style={{ color: previewSettings.highlightColor || '#18C9FF' }}>도네이터</span>님이 {previewSettings.minAmount ? previewSettings.minAmount.toLocaleString() : '1,000'}원을 후원해 주셨어요!
+                    </div>
+                  </>
+                )}
+                {widget.type !== 'text-alert' && (
+                  <div className="text-slate-400 font-medium flex flex-col items-center gap-2">
+                    <Layout size={32} className="opacity-50" />
+                    {widget.name} 영역
+                  </div>
+                )}
+
+                {/* Resize Handles */}
+                {selectedId === widget.id && (
+                  <>
+                    <div 
+                      className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-nwse-resize"
+                      onMouseDown={(e) => handleMouseDown(e, widget.id, 'top-left')}
+                    ></div>
+                    <div 
+                      className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-nesw-resize"
+                      onMouseDown={(e) => handleMouseDown(e, widget.id, 'top-right')}
+                    ></div>
+                    <div 
+                      className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-nesw-resize"
+                      onMouseDown={(e) => handleMouseDown(e, widget.id, 'bottom-left')}
+                    ></div>
+                    <div 
+                      className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-nwse-resize"
+                      onMouseDown={(e) => handleMouseDown(e, widget.id, 'bottom-right')}
+                    ></div>
+                  </>
+                )}
+              </div>
+            )})}
+          </div>
+
+          {/* Canvas Controls */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-[#181a20] border border-slate-800 rounded-full px-4 py-2 shadow-xl">
+            <span className="text-xs font-medium text-slate-400">해상도 기준: 1920 x 1080</span>
+            <div className="w-px h-4 bg-slate-700 mx-2"></div>
+            <button className="text-slate-400 hover:text-white"><Monitor size={16} /></button>
+          </div>
+        </main>
       </div>
-
-      {/* Scroll to Top Button */}
-      <button 
-        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="w-12 h-12 bg-white rounded-full shadow-lg border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors mt-2"
-      >
-        <ArrowUp size={20} />
-      </button>
+      
+      {/* Global CSS for custom scrollbar */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: #334155;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: #475569;
+        }
+      `}} />
     </div>
   );
 }
