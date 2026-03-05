@@ -10,7 +10,7 @@ import {
   ChevronRight, Trash2, Copy, Eye, EyeOff, MousePointer2,
   AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline,
   Video, Mic, Gift, Target, ListTodo, HelpCircle, Music, Palette,
-  Box, Gamepad2, GripVertical, BellRing, LayoutGrid, MessageSquare, QrCode, PiggyBank, Bell, Coins, Trophy, Users, Star, Package
+  Box, Gamepad2, GripVertical, BellRing, LayoutGrid, MessageSquare, QrCode, PiggyBank, Bell, Coins, Trophy, Users, Star, Package, Edit2
 } from 'lucide-react';
 
 // --- Types ---
@@ -91,26 +91,48 @@ const INITIAL_WIDGETS: Widget[] = [
     id: 'w-1',
     type: 'integrated-alert',
     name: '통합 알림창',
-    x: 320,
-    y: 180,
+    x: (1920 - 640) / 2,
+    y: (1080 - 360) / 2,
     width: 640,
     height: 360,
-    visible: true,
+    visible: false,
     settings: {
       activeAlertTab: 'text-alert',
       textAlert: {
         presetGroups: [
           {
             id: 'g-1',
-            name: '기본 테마',
+            name: '기본 프리셋 그룹',
             presets: [DEFAULT_TEXT_PRESET]
           }
         ],
         activeGroupId: 'g-1',
         editingPresetId: 'p-1'
+      },
+      signatureAlert: {
+        presetGroups: [
+          {
+            id: 'g-2',
+            name: '기본 프리셋 그룹',
+            presets: [{ ...DEFAULT_TEXT_PRESET, id: 'p-2' }]
+          }
+        ],
+        activeGroupId: 'g-2',
+        editingPresetId: 'p-2'
       }
     }
-  }
+  },
+  ...WIDGETS_MENU.map((w, i) => ({
+    id: `w-${i+2}`,
+    type: w.id,
+    name: w.name,
+    x: (1920 - 300) / 2,
+    y: (1080 - 300) / 2,
+    width: 300,
+    height: 300,
+    visible: false,
+    settings: {}
+  }))
 ];
 
 // --- Components ---
@@ -118,9 +140,9 @@ const INITIAL_WIDGETS: Widget[] = [
 const Accordion = ({ title, children, defaultOpen = true }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
-    <div className="border border-slate-700/50 rounded-lg bg-slate-800/20 overflow-hidden">
+    <div className="border border-slate-700 rounded-lg bg-[#22252d] overflow-hidden shadow-sm">
       <button 
-        className={`w-full flex items-center justify-between p-3 text-xs font-semibold text-slate-300 transition-colors hover:bg-slate-700/30 ${isOpen ? 'bg-slate-800/40 border-b border-slate-700/50' : ''}`}
+        className={`w-full flex items-center justify-between p-3 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-700/50 ${isOpen ? 'bg-[#2a2d36] border-b border-slate-700' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
       >
         {title}
@@ -143,7 +165,7 @@ const Input = ({ value, onChange, type = "text", className = "" }: any) => (
     type={type} 
     value={value} 
     onChange={onChange}
-    className={`w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all ${className}`}
+    className={`w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm ${className}`}
   />
 );
 
@@ -151,7 +173,7 @@ const Select = ({ value, onChange, options }: any) => (
   <select 
     value={value} 
     onChange={onChange}
-    className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 appearance-none"
+    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 appearance-none shadow-sm transition-all"
   >
     {options.map((opt: any) => {
       const isObj = typeof opt === 'object';
@@ -163,177 +185,40 @@ const Select = ({ value, onChange, options }: any) => (
 );
 
 export default function App() {
-  const [presets, setPresets] = useState<Preset[]>([
-    { id: 'preset-1', name: '기본 프리셋', widgets: INITIAL_WIDGETS }
-  ]);
-  const [activePresetId, setActivePresetId] = useState<string>('preset-1');
-  
   const [widgets, setWidgets] = useState<Widget[]>(INITIAL_WIDGETS);
   const [selectedId, setSelectedId] = useState<string | null>('w-1');
-  const [stagedWidget, setStagedWidget] = useState<Widget | null>(null);
   const [leftTab, setLeftTab] = useState<'alerts' | 'widgets' | 'layers'>('alerts');
   const [draggedWidgetId, setDraggedWidgetId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  const selectedWidget = widgets.find(w => w.id === selectedId) || stagedWidget;
-
-  const loadPreset = (id: string) => {
-    // Auto-save current state to the active preset before switching
-    setPresets(prev => prev.map(p => p.id === activePresetId ? { ...p, widgets } : p));
-    
-    const preset = presets.find(p => p.id === id);
-    if (preset) {
-      setWidgets(preset.widgets);
-      setActivePresetId(id);
-      setSelectedId(null);
-    }
-  };
-
-  const createNewPreset = () => {
-    setPresets(prev => prev.map(p => p.id === activePresetId ? { ...p, widgets } : p));
-    
-    const newId = `preset-${Date.now()}`;
-    const newPreset = { id: newId, name: `프리셋 ${presets.length + 1}`, widgets: [] };
-    setPresets(prev => [...prev, newPreset]);
-    setWidgets([]);
-    setActivePresetId(newId);
-    setSelectedId(null);
-  };
-
-  const deletePreset = (id: string) => {
-    if (presets.length === 1) {
-      alert('최소 1개의 프리셋이 필요합니다.');
-      return;
-    }
-    if (confirm('이 프리셋을 삭제하시겠습니까?')) {
-      const newPresets = presets.filter(p => p.id !== id);
-      setPresets(newPresets);
-      if (activePresetId === id) {
-        setWidgets(newPresets[0].widgets);
-        setActivePresetId(newPresets[0].id);
-        setSelectedId(null);
-      }
-    }
-  };
+  const selectedWidget = widgets.find(w => w.id === selectedId);
 
   const saveCurrentPreset = () => {
-    setPresets(prev => prev.map(p => p.id === activePresetId ? { ...p, widgets } : p));
-    alert('현재 프리셋이 저장되었습니다.');
+    alert('저장되었습니다.');
   };
 
   const handleAlertClick = (alertId: string) => {
-    setStagedWidget(null);
     let alertWidget = widgets.find(w => w.type === 'integrated-alert');
-    if (!alertWidget) {
-      const defaultPreset = {
-        id: `p-${Date.now()}`,
-        minAmount: 0,
-        layout: 'img-top',
-        animationIn: 'Fade In',
-        animationOut: 'Fade Out',
-        template: '{닉네임}님이 {금액}원을 후원해 주셨어요!',
-        duration: 5,
-        fontFamily: 'Pretendard',
-        fontSize: 36,
-        fontColor: '#ffffff',
-        highlightColor: '#18C9FF'
-      };
-      const defaultGroup = {
-        id: `g-${Date.now()}`,
-        name: '기본 테마',
-        presets: [defaultPreset]
-      };
-      
-      alertWidget = {
-        id: `w-${Date.now()}`,
-        type: 'integrated-alert',
-        name: '통합 알림창',
-        x: 320,
-        y: 180,
-        width: 640,
-        height: 360,
-        visible: true,
-        settings: {
-          activeAlertTab: alertId,
-          textAlert: {
-            presetGroups: [defaultGroup],
-            activeGroupId: defaultGroup.id,
-            editingPresetId: defaultPreset.id
-          }
-        }
-      };
-      setWidgets([...widgets, alertWidget]);
-    } else {
+    if (alertWidget) {
       updateSettings(alertWidget.id, { activeAlertTab: alertId });
+      setSelectedId(alertWidget.id);
     }
-    setSelectedId(alertWidget.id);
   };
 
   const handleWidgetClick = (widgetItem: any) => {
-    const newWidget: Widget = {
-      id: `staged-${Date.now()}`,
-      type: widgetItem.id,
-      name: widgetItem.name,
-      x: 100 + (widgets.length * 20),
-      y: 100 + (widgets.length * 20),
-      width: 400,
-      height: 300,
-      visible: true,
-      settings: {}
-    };
-    setStagedWidget(newWidget);
-    setSelectedId(null);
+    const existing = widgets.find(w => w.type === widgetItem.id);
+    if (existing) {
+      setSelectedId(existing.id);
+    }
   };
 
   const updateWidget = (id: string, updates: Partial<Widget>) => {
-    if (stagedWidget?.id === id) {
-      setStagedWidget(prev => prev ? { ...prev, ...updates } : null);
-      return;
-    }
     setWidgets(prev => prev.map(w => w.id === id ? { ...w, ...updates } : w));
   };
 
   const updateSettings = (id: string, settingUpdates: any) => {
-    if (stagedWidget?.id === id) {
-      setStagedWidget(prev => prev ? { ...prev, settings: { ...prev.settings, ...settingUpdates } } : null);
-      return;
-    }
     setWidgets(prev => prev.map(w => w.id === id ? { ...w, settings: { ...w.settings, ...settingUpdates } } : w));
   };
-
-  const deleteWidget = (id: string) => {
-    if (stagedWidget?.id === id) {
-      setStagedWidget(null);
-      return;
-    }
-    setWidgets(prev => prev.filter(w => w.id !== id));
-    if (selectedId === id) setSelectedId(null);
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.tagName === 'SELECT' ||
-        target.isContentEditable
-      ) {
-        return;
-      }
-
-      if ((e.key === 'Delete' || e.key === 'Backspace')) {
-        if (stagedWidget) {
-          setStagedWidget(null);
-        } else if (selectedId) {
-          deleteWidget(selectedId);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedId, stagedWidget]);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedWidgetId(id);
@@ -367,7 +252,6 @@ export default function App() {
   const handleMouseDown = (e: React.MouseEvent, id: string, handle?: string) => {
     e.stopPropagation();
     setSelectedId(id);
-    setStagedWidget(null);
     
     if (!canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
@@ -436,30 +320,31 @@ export default function App() {
 
   const isIntegratedAlert = selectedWidget?.type === 'integrated-alert';
   const activeAlertTab = isIntegratedAlert ? selectedWidget?.settings.activeAlertTab : null;
-  const isTextAlertTab = isIntegratedAlert && activeAlertTab === 'text-alert';
+  const isPresetSupportedTab = isIntegratedAlert && (activeAlertTab === 'text-alert' || activeAlertTab === 'signature-alert');
   
-  const textAlertSettings = isIntegratedAlert ? selectedWidget?.settings.textAlert : null;
-  const activeGroup = isTextAlertTab && textAlertSettings ? textAlertSettings.presetGroups?.find((g: any) => g.id === textAlertSettings.activeGroupId) : null;
-  const editingPreset = activeGroup ? activeGroup.presets.find((p: any) => p.id === textAlertSettings.editingPresetId) : selectedWidget?.settings;
+  const alertSettingsKey = activeAlertTab === 'text-alert' ? 'textAlert' : 'signatureAlert';
+  const currentAlertSettings = isPresetSupportedTab ? selectedWidget?.settings[alertSettingsKey] : null;
+  const activeGroup = isPresetSupportedTab && currentAlertSettings ? currentAlertSettings.presetGroups?.find((g: any) => g.id === currentAlertSettings.activeGroupId) : null;
+  const editingPreset = activeGroup ? activeGroup.presets.find((p: any) => p.id === currentAlertSettings.editingPresetId) : selectedWidget?.settings;
 
   const handleSettingChange = (updates: any) => {
     if (!selectedWidget) return;
     
-    if (isIntegratedAlert && activeAlertTab === 'text-alert' && textAlertSettings) {
-      const updatedGroups = textAlertSettings.presetGroups.map((group: any) => {
-        if (group.id === textAlertSettings.activeGroupId) {
+    if (isPresetSupportedTab && currentAlertSettings) {
+      const updatedGroups = currentAlertSettings.presetGroups.map((group: any) => {
+        if (group.id === currentAlertSettings.activeGroupId) {
           return {
             ...group,
             presets: group.presets.map((preset: any) => 
-              preset.id === textAlertSettings.editingPresetId ? { ...preset, ...updates } : preset
+              preset.id === currentAlertSettings.editingPresetId ? { ...preset, ...updates } : preset
             )
           };
         }
         return group;
       });
       updateSettings(selectedWidget.id, { 
-        textAlert: {
-          ...textAlertSettings,
+        [alertSettingsKey]: {
+          ...currentAlertSettings,
           presetGroups: updatedGroups 
         }
       });
@@ -469,18 +354,18 @@ export default function App() {
   };
 
   const handleAddGroup = () => {
-    if (!selectedWidget || !isTextAlertTab || !textAlertSettings) return;
+    if (!selectedWidget || !isPresetSupportedTab || !currentAlertSettings) return;
     const newGroupId = `g-${Date.now()}`;
     const newPresetId = `p-${Date.now()}`;
     const newGroup = {
       id: newGroupId,
-      name: `새 테마 ${textAlertSettings.presetGroups.length + 1}`,
+      name: `새 프리셋 그룹 ${currentAlertSettings.presetGroups.length + 1}`,
       presets: [{ ...DEFAULT_TEXT_PRESET, id: newPresetId }]
     };
     updateSettings(selectedWidget.id, { 
-      textAlert: {
-        ...textAlertSettings,
-        presetGroups: [...textAlertSettings.presetGroups, newGroup],
+      [alertSettingsKey]: {
+        ...currentAlertSettings,
+        presetGroups: [...currentAlertSettings.presetGroups, newGroup],
         activeGroupId: newGroupId,
         editingPresetId: newPresetId
       }
@@ -488,15 +373,15 @@ export default function App() {
   };
 
   const handleDeleteGroup = () => {
-    if (!selectedWidget || !isTextAlertTab || !textAlertSettings || textAlertSettings.presetGroups.length <= 1) {
-      alert('최소 1개의 테마가 필요합니다.');
+    if (!selectedWidget || !isPresetSupportedTab || !currentAlertSettings || currentAlertSettings.presetGroups.length <= 1) {
+      alert('최소 1개의 프리셋 그룹이 필요합니다.');
       return;
     }
-    if (confirm('이 테마를 삭제하시겠습니까?')) {
-      const updatedGroups = textAlertSettings.presetGroups.filter((g: any) => g.id !== textAlertSettings.activeGroupId);
+    if (confirm('이 프리셋 그룹을 삭제하시겠습니까?')) {
+      const updatedGroups = currentAlertSettings.presetGroups.filter((g: any) => g.id !== currentAlertSettings.activeGroupId);
       updateSettings(selectedWidget.id, { 
-        textAlert: {
-          ...textAlertSettings,
+        [alertSettingsKey]: {
+          ...currentAlertSettings,
           presetGroups: updatedGroups,
           activeGroupId: updatedGroups[0].id,
           editingPresetId: updatedGroups[0].presets[0].id
@@ -505,8 +390,27 @@ export default function App() {
     }
   };
 
+  const handleEditGroupName = () => {
+    if (!selectedWidget || !isPresetSupportedTab || !currentAlertSettings || !activeGroup) return;
+    const newName = prompt('프리셋 그룹 이름을 입력하세요:', activeGroup.name);
+    if (newName && newName.trim() !== '') {
+      const updatedGroups = currentAlertSettings.presetGroups.map((group: any) => {
+        if (group.id === currentAlertSettings.activeGroupId) {
+          return { ...group, name: newName.trim() };
+        }
+        return group;
+      });
+      updateSettings(selectedWidget.id, { 
+        [alertSettingsKey]: {
+          ...currentAlertSettings,
+          presetGroups: updatedGroups
+        }
+      });
+    }
+  };
+
   const handleAddPreset = () => {
-    if (!selectedWidget || !isTextAlertTab || !activeGroup || !textAlertSettings) return;
+    if (!selectedWidget || !isPresetSupportedTab || !activeGroup || !currentAlertSettings) return;
     const newPresetId = `p-${Date.now()}`;
     const newPreset = {
       ...editingPreset,
@@ -514,16 +418,16 @@ export default function App() {
       minAmount: (editingPreset?.minAmount || 0) + 1000
     };
     
-    const updatedGroups = textAlertSettings.presetGroups.map((group: any) => {
-      if (group.id === textAlertSettings.activeGroupId) {
+    const updatedGroups = currentAlertSettings.presetGroups.map((group: any) => {
+      if (group.id === currentAlertSettings.activeGroupId) {
         return { ...group, presets: [...group.presets, newPreset] };
       }
       return group;
     });
 
     updateSettings(selectedWidget.id, { 
-      textAlert: {
-        ...textAlertSettings,
+      [alertSettingsKey]: {
+        ...currentAlertSettings,
         presetGroups: updatedGroups,
         editingPresetId: newPresetId
       }
@@ -531,26 +435,26 @@ export default function App() {
   };
 
   const handleDeletePreset = (presetId: string) => {
-    if (!selectedWidget || !isTextAlertTab || !activeGroup || activeGroup.presets.length <= 1 || !textAlertSettings) {
-      alert('최소 1개의 금액 설정이 필요합니다.');
+    if (!selectedWidget || !isPresetSupportedTab || !activeGroup || activeGroup.presets.length <= 1 || !currentAlertSettings) {
+      alert('최소 1개의 프리셋이 필요합니다.');
       return;
     }
-    if (confirm('이 금액 설정을 삭제하시겠습니까?')) {
-      const updatedGroups = textAlertSettings.presetGroups.map((group: any) => {
-        if (group.id === textAlertSettings.activeGroupId) {
+    if (confirm('이 프리셋을 삭제하시겠습니까?')) {
+      const updatedGroups = currentAlertSettings.presetGroups.map((group: any) => {
+        if (group.id === currentAlertSettings.activeGroupId) {
           const filteredPresets = group.presets.filter((p: any) => p.id !== presetId);
           return { ...group, presets: filteredPresets };
         }
         return group;
       });
 
-      const newEditingId = textAlertSettings.editingPresetId === presetId 
-        ? updatedGroups.find((g: any) => g.id === textAlertSettings.activeGroupId).presets[0].id 
-        : textAlertSettings.editingPresetId;
+      const newEditingId = currentAlertSettings.editingPresetId === presetId 
+        ? updatedGroups.find((g: any) => g.id === currentAlertSettings.activeGroupId).presets[0].id 
+        : currentAlertSettings.editingPresetId;
 
       updateSettings(selectedWidget.id, { 
-        textAlert: {
-          ...textAlertSettings,
+        [alertSettingsKey]: {
+          ...currentAlertSettings,
           presetGroups: updatedGroups,
           editingPresetId: newEditingId
         }
@@ -559,15 +463,19 @@ export default function App() {
   };
 
   const getWidgetPreviewSettings = (widget: Widget, isSelected: boolean) => {
-    if (widget.type === 'integrated-alert' && widget.settings.activeAlertTab === 'text-alert') {
-      const textSettings = widget.settings.textAlert;
-      if (!textSettings) return widget.settings;
-      
-      const group = textSettings.presetGroups?.find((g: any) => g.id === textSettings.activeGroupId);
-      if (isSelected) {
-        return group?.presets.find((p: any) => p.id === textSettings.editingPresetId) || widget.settings;
-      } else {
-        return group?.presets[0] || widget.settings;
+    if (widget.type === 'integrated-alert') {
+      const tab = widget.settings.activeAlertTab;
+      if (tab === 'text-alert' || tab === 'signature-alert') {
+        const settingsKey = tab === 'text-alert' ? 'textAlert' : 'signatureAlert';
+        const currentSettings = widget.settings[settingsKey];
+        if (!currentSettings) return widget.settings;
+        
+        const group = currentSettings.presetGroups?.find((g: any) => g.id === currentSettings.activeGroupId);
+        if (isSelected) {
+          return group?.presets.find((p: any) => p.id === currentSettings.editingPresetId) || widget.settings;
+        } else {
+          return group?.presets[0] || widget.settings;
+        }
       }
     }
     return widget.settings;
@@ -586,26 +494,6 @@ export default function App() {
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-slate-300">통합 전체화면 위젯</span>
             <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">1920x1080</span>
-          </div>
-          <div className="h-4 w-px bg-slate-700 mx-2"></div>
-          
-          {/* Preset Selector */}
-          <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-lg p-1">
-            <select 
-              value={activePresetId}
-              onChange={(e) => loadPreset(e.target.value)}
-              className="bg-transparent border-none text-sm font-medium text-slate-200 focus:outline-none px-2 py-1 cursor-pointer appearance-none pr-6 relative"
-              style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center', backgroundSize: '16px' }}
-            >
-              {presets.map(p => <option key={p.id} value={p.id} className="bg-slate-900">{p.name}</option>)}
-            </select>
-            <div className="w-px h-4 bg-slate-700 mx-1"></div>
-            <button onClick={createNewPreset} className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors" title="새 프리셋">
-              <Plus size={14} />
-            </button>
-            <button onClick={() => deletePreset(activePresetId)} className="p-1.5 hover:bg-red-500/20 rounded text-slate-400 hover:text-red-400 transition-colors" title="현재 프리셋 삭제">
-              <Trash2 size={14} />
-            </button>
           </div>
         </div>
         
@@ -660,7 +548,7 @@ export default function App() {
                 {ALERTS_MENU.map(alert => (
                   <button
                     key={alert.id}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800/30 hover:bg-slate-700/50 border border-slate-700/50 hover:border-slate-500 transition-all text-left group"
+                    className="w-full flex items-center gap-3 p-3 rounded-lg bg-[#22252d] hover:bg-[#2a2d36] border border-slate-700 hover:border-slate-500 transition-all text-left group shadow-sm"
                     onClick={() => handleAlertClick(alert.id)}
                   >
                     <div className="p-2 bg-slate-800 rounded-md text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-300 transition-colors shrink-0">
@@ -681,7 +569,7 @@ export default function App() {
                   {WIDGETS_MENU.map(widget => (
                     <button
                       key={widget.id}
-                      className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg bg-slate-800/30 hover:bg-slate-700/50 border border-slate-700/50 hover:border-slate-500 transition-all group"
+                      className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg bg-[#22252d] hover:bg-[#2a2d36] border border-slate-700 hover:border-slate-500 transition-all group shadow-sm"
                       onClick={() => handleWidgetClick(widget)}
                     >
                       <widget.icon size={20} className="text-slate-400 group-hover:text-blue-400 transition-colors" />
@@ -701,7 +589,7 @@ export default function App() {
                     onDragStart={(e) => handleDragStart(e, widget.id)}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, widget.id)}
-                    className={`flex items-center justify-between p-2 rounded cursor-pointer border ${selectedId === widget.id ? 'bg-blue-500/10 border-blue-500/50 text-blue-400' : 'bg-transparent border-transparent text-slate-300 hover:bg-slate-800'} ${draggedWidgetId === widget.id ? 'opacity-50' : ''}`}
+                    className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-colors shadow-sm ${selectedId === widget.id ? 'bg-blue-500/10 border-blue-500/50 text-blue-400' : 'bg-[#22252d] border-slate-700 text-slate-300 hover:border-slate-500 hover:bg-[#2a2d36]'} ${draggedWidgetId === widget.id ? 'opacity-50' : ''}`}
                     onClick={() => setSelectedId(widget.id)}
                   >
                     <div className="flex items-center gap-2 overflow-hidden">
@@ -717,12 +605,6 @@ export default function App() {
                         onClick={(e) => { e.stopPropagation(); updateWidget(widget.id, { visible: !widget.visible }); }}
                       >
                         {widget.visible ? <Eye size={14} /> : <EyeOff size={14} />}
-                      </button>
-                      <button 
-                        className="p-1 hover:bg-red-500/20 rounded text-slate-400 hover:text-red-400"
-                        onClick={(e) => { e.stopPropagation(); deleteWidget(widget.id); }}
-                      >
-                        <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
@@ -742,13 +624,25 @@ export default function App() {
           <div className="flex-1 overflow-y-auto custom-scrollbar">
           {selectedWidget ? (
             <div className="pb-6">
-              <div className="p-4 border-b border-slate-800 flex items-center gap-3 bg-slate-800/20 mb-3">
-                <div className="p-2 bg-blue-500/20 rounded text-blue-400">
-                  <Settings size={20} />
+              <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-800/20 mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500/20 rounded text-blue-400">
+                    <Settings size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-white">{selectedWidget.name}</h2>
+                    <p className="text-[11px] text-slate-400">ID: {selectedWidget.id}</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-sm font-bold text-white">{selectedWidget.name}</h2>
-                  <p className="text-[11px] text-slate-400">ID: {selectedWidget.id}</p>
+              </div>
+
+              <div className="px-3 mb-4">
+                <div className="flex items-center justify-between p-3 bg-[#22252d] border border-slate-700 rounded-lg shadow-sm">
+                  <span className="text-sm font-medium text-slate-200">위젯 사용하기</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" checked={selectedWidget.visible} onChange={() => updateWidget(selectedWidget.id, { visible: !selectedWidget.visible })} />
+                    <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                  </label>
                 </div>
               </div>
 
@@ -770,26 +664,27 @@ export default function App() {
                   </div>
                 </Accordion>
 
-              {isTextAlertTab && activeGroup && textAlertSettings && (
+              {isPresetSupportedTab && activeGroup && currentAlertSettings && (
                 <Accordion title="테마 및 금액 설정 (Themes & Amounts)">
                   <div className="space-y-4">
                     {/* Theme Selection */}
                     <FormGroup label="방송 테마 (Preset Group)">
                       <div className="flex items-center gap-2">
                         <Select 
-                          value={textAlertSettings.activeGroupId} 
+                          value={currentAlertSettings.activeGroupId} 
                           onChange={(e: any) => {
-                            const group = textAlertSettings.presetGroups.find((g: any) => g.id === e.target.value);
+                            const group = currentAlertSettings.presetGroups.find((g: any) => g.id === e.target.value);
                             updateSettings(selectedWidget.id, { 
-                              textAlert: {
-                                ...textAlertSettings,
+                              [alertSettingsKey]: {
+                                ...currentAlertSettings,
                                 activeGroupId: e.target.value, 
                                 editingPresetId: group.presets[0].id 
                               }
                             });
                           }}
-                          options={textAlertSettings.presetGroups.map((g: any) => ({ label: g.name, value: g.id }))} 
+                          options={currentAlertSettings.presetGroups.map((g: any) => ({ label: g.name, value: g.id }))} 
                         />
+                        <button onClick={handleEditGroupName} className="p-2 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition-colors" title="테마 이름 변경"><Edit2 size={16}/></button>
                         <button onClick={handleAddGroup} className="p-2 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 transition-colors" title="새 테마 추가"><Plus size={16}/></button>
                         <button onClick={handleDeleteGroup} className="p-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded transition-colors" title="현재 테마 삭제"><Trash2 size={16}/></button>
                       </div>
@@ -801,10 +696,10 @@ export default function App() {
                         {[...activeGroup.presets].sort((a,b) => a.minAmount - b.minAmount).map((preset: any) => (
                           <div 
                             key={preset.id} 
-                            className={`flex items-center justify-between p-2 rounded border cursor-pointer transition-colors ${textAlertSettings.editingPresetId === preset.id ? 'border-blue-500 bg-blue-500/10 text-blue-400' : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-500'}`}
+                            className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-colors shadow-sm ${currentAlertSettings.editingPresetId === preset.id ? 'border-blue-500 bg-blue-500/10 text-blue-400' : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500 hover:bg-slate-800'}`}
                             onClick={() => updateSettings(selectedWidget.id, { 
-                              textAlert: {
-                                ...textAlertSettings,
+                              [alertSettingsKey]: {
+                                ...currentAlertSettings,
                                 editingPresetId: preset.id 
                               }
                             })}
@@ -813,7 +708,7 @@ export default function App() {
                             <button onClick={(e) => { e.stopPropagation(); handleDeletePreset(preset.id); }} className="p-1 text-slate-500 hover:text-red-400 rounded hover:bg-slate-700 transition-colors"><Trash2 size={14}/></button>
                           </div>
                         ))}
-                        <button onClick={handleAddPreset} className="w-full py-2 border border-dashed border-slate-600 text-slate-400 hover:text-white hover:border-slate-400 hover:bg-slate-800 rounded text-sm flex items-center justify-center gap-2 transition-all">
+                        <button onClick={handleAddPreset} className="w-full py-2 border border-dashed border-slate-600 text-slate-400 hover:text-white hover:border-slate-400 hover:bg-slate-800 rounded-lg text-sm flex items-center justify-center gap-2 transition-all">
                           <Plus size={14} /> 새 금액 구간 추가
                         </button>
                       </div>
@@ -825,13 +720,6 @@ export default function App() {
               {/* Dynamic Settings based on Widget Type (Mocking Text Alert settings from PDF) */}
               <Accordion title="기본 설정 (General)">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">위젯 사용하기</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" checked={selectedWidget.visible} onChange={() => updateWidget(selectedWidget.id, { visible: !selectedWidget.visible })} />
-                      <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
-                    </label>
-                  </div>
                   <FormGroup label="최소 후원 캐시">
                     <div className="flex items-center gap-2">
                       <Input type="number" value={editingPreset?.minAmount || 0} onChange={(e: any) => handleSettingChange({ minAmount: Number(e.target.value) })} />
@@ -848,7 +736,7 @@ export default function App() {
                       {['img-top', 'img-left', 'img-right'].map(layout => (
                         <button 
                           key={layout}
-                          className={`h-12 border rounded flex flex-col items-center justify-center gap-1 ${editingPreset?.layout === layout ? 'border-blue-500 bg-blue-500/10 text-blue-400' : 'border-slate-700 bg-slate-900 text-slate-500 hover:border-slate-500'}`}
+                          className={`h-12 border rounded-lg flex flex-col items-center justify-center gap-1 shadow-sm transition-colors ${editingPreset?.layout === layout ? 'border-blue-500 bg-blue-500/10 text-blue-400' : 'border-slate-700 bg-slate-900 text-slate-500 hover:border-slate-500 hover:bg-slate-800'}`}
                           onClick={() => handleSettingChange({ layout })}
                         >
                           <ImageIcon size={14} />
@@ -933,10 +821,10 @@ export default function App() {
                       </div>
                     </FormGroup>
                     <FormGroup label="텍스트 정렬">
-                      <div className="flex items-center bg-slate-900 border border-slate-700 rounded overflow-hidden">
-                        <button className="flex-1 py-1.5 flex justify-center hover:bg-slate-800 text-slate-400 hover:text-white"><AlignLeft size={16} /></button>
-                        <button className="flex-1 py-1.5 flex justify-center bg-slate-800 text-white"><AlignCenter size={16} /></button>
-                        <button className="flex-1 py-1.5 flex justify-center hover:bg-slate-800 text-slate-400 hover:text-white"><AlignRight size={16} /></button>
+                      <div className="flex items-center bg-slate-900 border border-slate-700 rounded-lg overflow-hidden shadow-sm">
+                        <button className="flex-1 py-1.5 flex justify-center hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"><AlignLeft size={16} /></button>
+                        <button className="flex-1 py-1.5 flex justify-center bg-slate-800 text-white transition-colors"><AlignCenter size={16} /></button>
+                        <button className="flex-1 py-1.5 flex justify-center hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"><AlignRight size={16} /></button>
                       </div>
                     </FormGroup>
                   </div>
@@ -962,27 +850,10 @@ export default function App() {
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-slate-500 p-8 text-center min-h-full">
               <MousePointer2 size={48} className="mb-4 opacity-20" />
-              <p className="text-sm">캔버스에서 위젯을 선택하거나<br/>왼쪽 패널에서 새 위젯을 추가하세요.</p>
+              <p className="text-sm">캔버스에서 위젯을 선택하거나<br/>왼쪽 패널에서 위젯을 선택하세요.</p>
             </div>
           )}
           </div>
-          {stagedWidget && (
-            <div className="p-4 bg-[#181a20] border-t border-slate-800 shrink-0">
-              <button 
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
-                onClick={() => {
-                  const newId = `w-${Date.now()}`;
-                  const widgetToAdd = { ...stagedWidget, id: newId };
-                  setWidgets([...widgets, widgetToAdd]);
-                  setStagedWidget(null);
-                  setSelectedId(newId);
-                }}
-              >
-                <Plus size={18} />
-                캔버스에 위젯 추가하기
-              </button>
-            </div>
-          )}
         </aside>
 
         {/* Right Canvas Area - Preview */}
@@ -998,7 +869,6 @@ export default function App() {
             onMouseDown={(e) => {
               if (e.target === e.currentTarget) {
                 setSelectedId(null);
-                setStagedWidget(null);
               }
             }}
           >
