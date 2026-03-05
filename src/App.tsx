@@ -10,7 +10,8 @@ import {
   ChevronRight, Trash2, Copy, Eye, EyeOff, MousePointer2,
   AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline,
   Video, Mic, Gift, Target, ListTodo, HelpCircle, Music, Palette,
-  Box, Gamepad2, GripVertical, BellRing, LayoutGrid, MessageSquare, QrCode, PiggyBank, Bell, Coins, Trophy, Users, Star, Package, Edit2
+  Box, Gamepad2, GripVertical, BellRing, LayoutGrid, MessageSquare, QrCode, PiggyBank, Bell, Coins, Trophy, Users, Star, Package, Edit2,
+  Heart, Zap, Gem, DollarSign, UserPlus
 } from 'lucide-react';
 
 // --- Types ---
@@ -35,7 +36,7 @@ interface Preset {
 }
 
 // --- Mock Data & Config ---
-const ALERTS_MENU = [
+const DONATION_ALERTS = [
   { id: 'text-alert', name: '텍스트 후원 알림', icon: Type, desc: '텍스트로 후원 메시지를 받으며 도네이터와 소통할 수 있습니다.' },
   { id: 'game-alert', name: '게임 후원', icon: Gamepad2, desc: '도네이터가 직접 크리에이터에게 게임 아이템을 선물 할 수 있습니다.' },
   { id: 'signature-alert', name: '시그니처 후원 알림', icon: Star, desc: '지정된 시그니처 리액션을 선택해서 후원할 수 있습니다.' },
@@ -50,6 +51,32 @@ const ALERTS_MENU = [
   { id: 'luckybox-alert', name: '럭키박스 알림', icon: Box, desc: '도네이터들이 보내준 럭키박스를 통해 함께 즐기며 소통할 수 있습니다.' },
   { id: 'play-alert', name: '플레이 후원 알림', icon: Gamepad2, desc: '퀴즈와 같은 재미있고 다양한 방법으로 도네이터와 소통할 수 있습니다.' },
 ];
+
+const YOUTUBE_ALERTS = [
+  { id: 'yt-superchat', name: '슈퍼챗 알림', icon: MessageSquare, desc: '슈퍼챗으로 받은 후원을 알려줍니다.' },
+  { id: 'yt-sponsor', name: '스폰서 알림', icon: DollarSign, desc: '새로운 스폰서를 알려줍니다.' },
+];
+
+const CHZZK_ALERTS = [
+  { id: 'chzzk-sub', name: '치지직 구독 알림', icon: Zap, desc: '새로운 구독자를 알려줍니다' },
+  { id: 'chzzk-cheese', name: '치즈 알림', icon: Coins, desc: '치즈로 받은 후원을 알림으로 받을 수 있습니다.' },
+];
+
+const TWITCH_ALERTS = [
+  { id: 'twitch-sub', name: '구독 알림', icon: Star, desc: '새로운 구독자를 알려줍니다' },
+  { id: 'twitch-follow', name: '팔로우 알림', icon: Heart, desc: '새로운 팔로워를 알려줍니다.' },
+  { id: 'twitch-bit', name: '비트 알림', icon: Gem, desc: '비트로 받은 후원을 알림으로 받을 수 있습니다.' },
+  { id: 'twitch-sub-gift', name: '구독선물 알림', icon: Gift, desc: '구독 선물을 알려 줍니다.' },
+  { id: 'twitch-sub-gift-cnt', name: '구독선물개수 알림', icon: Gift, desc: '구독 선물 받은 개수를 알려줍니다.' },
+  { id: 'twitch-raid', name: '레이드 알림', icon: UserPlus, desc: '레이드 알림을 받을 수 있습니다.' },
+];
+
+const ALERTS_DATA = {
+  donation: DONATION_ALERTS,
+  youtube: YOUTUBE_ALERTS,
+  chzzk: CHZZK_ALERTS,
+  twitch: TWITCH_ALERTS
+};
 
 const WIDGETS_MENU = [
   { id: 'chat', name: '채팅창', icon: MessageSquare },
@@ -188,6 +215,7 @@ export default function App() {
   const [widgets, setWidgets] = useState<Widget[]>(INITIAL_WIDGETS);
   const [selectedId, setSelectedId] = useState<string | null>('w-1');
   const [leftTab, setLeftTab] = useState<'alerts' | 'widgets' | 'layers'>('alerts');
+  const [alertCategory, setAlertCategory] = useState<'donation' | 'youtube' | 'chzzk' | 'twitch'>('donation');
   const [draggedWidgetId, setDraggedWidgetId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -545,17 +573,50 @@ export default function App() {
             {leftTab === 'alerts' && (
               <div className="space-y-2">
                 <div className="text-xs font-semibold text-slate-500 mb-3 px-1">통합 알림창 (Integrated Alerts)</div>
-                {ALERTS_MENU.map(alert => (
+                
+                {/* Category Tabs */}
+                <div className="flex p-1 bg-[#22252d] rounded-lg mb-3 gap-1 overflow-x-auto custom-scrollbar">
+                  {[
+                    { id: 'donation', label: '후원' },
+                    { id: 'youtube', label: '유튜브' },
+                    { id: 'chzzk', label: '치지직' },
+                    { id: 'twitch', label: '트위치' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setAlertCategory(tab.id as any)}
+                      className={`flex-1 px-2 py-1.5 text-[11px] font-medium rounded-md whitespace-nowrap transition-colors ${
+                        alertCategory === tab.id 
+                          ? 'bg-slate-700 text-white shadow-sm' 
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {ALERTS_DATA[alertCategory].map(alert => (
                   <button
                     key={alert.id}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg bg-[#22252d] hover:bg-[#2a2d36] border border-slate-700 hover:border-slate-500 transition-all text-left group shadow-sm"
+                    className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left group shadow-sm ${
+                      activeAlertTab === alert.id 
+                        ? 'bg-blue-500/10 border-blue-500/50' 
+                        : 'bg-[#22252d] border-slate-700 hover:bg-[#2a2d36] hover:border-slate-500'
+                    }`}
                     onClick={() => handleAlertClick(alert.id)}
                   >
-                    <div className="p-2 bg-slate-800 rounded-md text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-300 transition-colors shrink-0">
+                    <div className={`p-2 rounded-md transition-colors shrink-0 ${
+                      activeAlertTab === alert.id 
+                        ? 'bg-blue-500 text-white' 
+                        : 'bg-slate-800 text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-300'
+                    }`}>
                       <alert.icon size={18} />
                     </div>
                     <div className="overflow-hidden">
-                      <div className="text-sm font-medium text-slate-200 truncate">{alert.name}</div>
+                      <div className={`text-sm font-medium truncate ${
+                        activeAlertTab === alert.id ? 'text-blue-400' : 'text-slate-200'
+                      }`}>{alert.name}</div>
                       <div className="text-[10px] text-slate-500 truncate">{alert.desc}</div>
                     </div>
                   </button>
@@ -566,16 +627,32 @@ export default function App() {
               <div className="space-y-2">
                 <div className="text-xs font-semibold text-slate-500 mb-3 px-1">개별 위젯 (Individual Widgets)</div>
                 <div className="grid grid-cols-2 gap-2">
-                  {WIDGETS_MENU.map(widget => (
-                    <button
-                      key={widget.id}
-                      className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg bg-[#22252d] hover:bg-[#2a2d36] border border-slate-700 hover:border-slate-500 transition-all group shadow-sm"
-                      onClick={() => handleWidgetClick(widget)}
-                    >
-                      <widget.icon size={20} className="text-slate-400 group-hover:text-blue-400 transition-colors" />
-                      <span className="text-xs font-medium text-slate-300 text-center">{widget.name}</span>
-                    </button>
-                  ))}
+                  {WIDGETS_MENU.map(widget => {
+                    const isSelected = selectedWidget?.type === widget.id;
+                    return (
+                      <button
+                        key={widget.id}
+                        className={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border transition-all group shadow-sm ${
+                          isSelected 
+                            ? 'bg-blue-500/10 border-blue-500/50' 
+                            : 'bg-[#22252d] border-slate-700 hover:bg-[#2a2d36] hover:border-slate-500'
+                        }`}
+                        onClick={() => handleWidgetClick(widget)}
+                      >
+                        <widget.icon 
+                          size={20} 
+                          className={`transition-colors ${
+                            isSelected ? 'text-blue-400' : 'text-slate-400 group-hover:text-blue-400'
+                          }`} 
+                        />
+                        <span className={`text-xs font-medium text-center ${
+                          isSelected ? 'text-blue-400' : 'text-slate-300'
+                        }`}>
+                          {widget.name}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
