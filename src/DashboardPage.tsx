@@ -2,11 +2,34 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Settings, Monitor, Grid, Mic, Trophy, 
-  Heart, Package, User, ChevronRight, Bell, Volume2, 
+  Heart, Package, User, ChevronRight, ChevronLeft, Bell, Volume2, 
   Play, Copy, Image as ImageIcon, Type, Plus, MoreHorizontal,
-  ChevronDown, X, Upload, Search, Moon, Sun, BellRing,
-  Pin, Menu, Pencil, Check, Lock
+  ChevronDown, ChevronUp, X, Upload, Search, Moon, Sun, BellRing,
+  Pin, Menu, Pencil, Check, Lock, CreditCard, HelpCircle
 } from 'lucide-react';
+
+const SidebarMenuItem = ({ icon: Icon, label, active = false, hasSubmenu = false, isExpanded = false, isSubItem = false, onClick }: any) => (
+  <button 
+    onClick={onClick}
+    className={`w-full flex items-center justify-between px-3 py-1.5 transition-colors rounded-lg ${
+      isSubItem 
+        ? `pl-10 text-[14px] ${active ? 'text-blue-600 dark:text-blue-400 font-semibold bg-blue-50 dark:bg-blue-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`
+        : `text-[15px] font-bold ${active ? 'text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`
+    }`}
+  >
+    <div className={`flex items-center ${isSubItem ? 'gap-3' : 'gap-3'}`}>
+      {isSubItem ? (
+        <span className="text-slate-400 dark:text-slate-500 text-sm">-</span>
+      ) : (
+        Icon && <Icon size={18} className={active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'} />
+      )}
+      <span>{label}</span>
+    </div>
+    {hasSubmenu && (
+      isExpanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />
+    )}
+  </button>
+);
 
 const MenuItem = ({ icon: Icon, label, active = false, hasSubmenu = false, onClick }: any) => (
   <button 
@@ -43,13 +66,19 @@ const Section = ({ title, subtitle, children }: any) => (
   </div>
 );
 
-const PresetItem = ({ label, desc, isChecked = true }: any) => (
-  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-lg mb-2 gap-3 sm:gap-0">
+const PresetItem = ({ label, desc, isChecked = true, onDelete, onChangeDesc }: any) => (
+  <div className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-lg mb-2 gap-3 sm:gap-0 relative pr-12">
     <div className="flex items-center gap-4 w-full sm:w-24 shrink-0">
       <span className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate">{label}</span>
     </div>
     <div className="flex-1 w-full sm:w-auto sm:px-4">
-      <input type="text" defaultValue={desc} placeholder={desc.includes('조건') ? desc : ''} className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <input 
+        type="text" 
+        value={desc} 
+        onChange={(e) => onChangeDesc?.(e.target.value)}
+        placeholder="조건을 입력하세요 (예: 후원금액 1,000 cash 이상)" 
+        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+      />
     </div>
     <div className="flex items-center gap-4 justify-between sm:justify-end shrink-0">
       <div className="relative inline-flex items-center cursor-pointer">
@@ -60,6 +89,13 @@ const PresetItem = ({ label, desc, isChecked = true }: any) => (
         설정 <ChevronDown size={14} className="text-slate-400" />
       </button>
     </div>
+    <button 
+      onClick={onDelete}
+      className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all"
+      title="프리셋 삭제"
+    >
+      <X size={16} />
+    </button>
   </div>
 );
 
@@ -84,11 +120,128 @@ const LayoutOption = ({ icon: Icon, active = false, label }: any) => (
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(false); // Local state for dashboard demo
+  const [isPreviewOpen, setIsPreviewOpen] = useState(true);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState('크루 후원 - A 그룹');
+  
+  const [groups, setGroups] = useState([
+    {
+      id: 'g1',
+      name: '토크 방송',
+      presets: []
+    },
+    {
+      id: 'g2',
+      name: '게임 방송',
+      presets: []
+    },
+    {
+      id: 'g3',
+      name: '크루 후원 - A 그룹',
+      presets: [
+        { id: 'p1', label: '1번 프리셋', desc: '후원금액 1,000 cash 이상', isChecked: true },
+        { id: 'p2', label: '2번 프리셋', desc: '후원금액 10,000 cash 이상', isChecked: true },
+        { id: 'p3', label: '3번 프리셋', desc: '', isChecked: true },
+      ]
+    },
+    {
+      id: 'g4',
+      name: '크루 후원 - B 그룹',
+      presets: []
+    }
+  ]);
+  const [selectedGroupId, setSelectedGroupId] = useState('g3');
+  const [isEditingGroupName, setIsEditingGroupName] = useState(false);
+  const [editingGroupName, setEditingGroupName] = useState('');
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
+    '방송 관리': true,
+    '후원 관리': true,
+    '계정 설정': true,
+  });
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+
+  const toggleMenu = (menu: string) => {
+    setExpandedMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
+  };
+
+  const activeGroup = groups.find(g => g.id === selectedGroupId) || groups[0];
+
+  const handleAddPreset = () => {
+    setGroups(prev => prev.map(g => {
+      if (g.id === selectedGroupId) {
+        const newPresetId = `p${Date.now()}`;
+        return {
+          ...g,
+          presets: [
+            ...g.presets,
+            { id: newPresetId, label: `${g.presets.length + 1}번 프리셋`, desc: '', isChecked: true }
+          ]
+        };
+      }
+      return g;
+    }));
+  };
+
+  const handleDeletePreset = (presetId: string) => {
+    setGroups(prev => prev.map(g => {
+      if (g.id === selectedGroupId) {
+        return {
+          ...g,
+          presets: g.presets.filter(p => p.id !== presetId)
+        };
+      }
+      return g;
+    }));
+  };
+
+  const handleChangePresetDesc = (presetId: string, newDesc: string) => {
+    setGroups(prev => prev.map(g => {
+      if (g.id === selectedGroupId) {
+        return {
+          ...g,
+          presets: g.presets.map(p => p.id === presetId ? { ...p, desc: newDesc } : p)
+        };
+      }
+      return g;
+    }));
+  };
+
+  const handleAddGroup = () => {
+    const newGroupId = `g${Date.now()}`;
+    setGroups(prev => [
+      ...prev,
+      { id: newGroupId, name: '새 프리셋 그룹', presets: [] }
+    ]);
+    setSelectedGroupId(newGroupId);
+  };
+
+  const handleDeleteGroup = (groupIdToDelete?: string) => {
+    const targetId = groupIdToDelete || selectedGroupId;
+    if (groups.length <= 1) {
+      alert('최소 1개의 프리셋 그룹이 필요합니다.');
+      return;
+    }
+    if (window.confirm('이 프리셋 그룹을 삭제하시겠습니까?')) {
+      setGroups(prev => prev.filter(g => g.id !== targetId));
+      if (selectedGroupId === targetId) {
+        setSelectedGroupId(groups.find(g => g.id !== targetId)!.id);
+      }
+    }
+  };
+
+  const handleSaveGroupName = () => {
+    if (editingGroupName.trim()) {
+      const targetId = editingGroupId || selectedGroupId;
+      setGroups(prev => prev.map(g => 
+        g.id === targetId ? { ...g, name: editingGroupName.trim() } : g
+      ));
+    }
+    setIsEditingGroupName(false);
+    setEditingGroupId(null);
+  };
 
   const handleCopy = (url: string, type: string) => {
     navigator.clipboard.writeText(url);
@@ -118,20 +271,66 @@ export default function DashboardPage() {
         </div>
         
         {/* Menu */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto custom-scrollbar">
-          <MenuItem icon={LayoutDashboard} label="대시보드" />
-          <MenuItem icon={Settings} label="간편설정" />
-          <MenuItem icon={Monitor} label="전체 화면 위젯" onClick={() => navigate('/')} />
-          <div className="relative">
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>
-            <MenuItem icon={Bell} label="통합 알림창" active />
-          </div>
-          <MenuItem icon={Grid} label="위젯" />
-          <MenuItem icon={Mic} label="모두의 보이스" />
-          <MenuItem icon={Trophy} label="랭킹" />
-          <MenuItem icon={Heart} label="후원관리" hasSubmenu />
-          <MenuItem icon={Package} label="인벤토리" />
-          <MenuItem icon={User} label="계정설정" />
+        <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto custom-scrollbar">
+          <SidebarMenuItem icon={LayoutDashboard} label="대시보드" />
+          
+          <SidebarMenuItem 
+            icon={Monitor}
+            label="방송 관리" 
+            hasSubmenu 
+            isExpanded={expandedMenus['방송 관리']} 
+            onClick={() => toggleMenu('방송 관리')} 
+          />
+          {expandedMenus['방송 관리'] && (
+            <div className="space-y-0.5 mb-1">
+              <SidebarMenuItem label="전체 화면 위젯" isSubItem onClick={() => navigate('/')} />
+              <div className="relative">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>
+                <SidebarMenuItem label="통합 알림창" isSubItem active />
+              </div>
+              <SidebarMenuItem label="위젯" isSubItem />
+              <SidebarMenuItem label="크루 스튜디오" isSubItem onClick={() => window.location.href = 'https://excel-eosin-sigma.vercel.app/'} />
+              <SidebarMenuItem label="간편설정" isSubItem />
+            </div>
+          )}
+
+          <SidebarMenuItem icon={Mic} label="모두의 보이스" />
+          
+          <SidebarMenuItem 
+            icon={Heart}
+            label="후원 관리" 
+            hasSubmenu 
+            isExpanded={expandedMenus['후원 관리']} 
+            onClick={() => toggleMenu('후원 관리')} 
+          />
+          {expandedMenus['후원 관리'] && (
+            <div className="space-y-0.5 mb-1">
+              <SidebarMenuItem label="후원 페이지" isSubItem />
+              <SidebarMenuItem label="후원 리스트" isSubItem />
+              <SidebarMenuItem label="후원 순위" isSubItem />
+              <SidebarMenuItem label="후원 필터링" isSubItem />
+              <SidebarMenuItem label="칭호 설정" isSubItem />
+            </div>
+          )}
+
+          <SidebarMenuItem icon={Package} label="인벤토리" />
+          
+          <SidebarMenuItem 
+            icon={User}
+            label="계정 설정" 
+            hasSubmenu 
+            isExpanded={expandedMenus['계정 설정']} 
+            onClick={() => toggleMenu('계정 설정')} 
+          />
+          {expandedMenus['계정 설정'] && (
+            <div className="space-y-0.5 mb-1">
+              <SidebarMenuItem label="기본 설정" isSubItem />
+              <SidebarMenuItem label="채널 관리" isSubItem />
+            </div>
+          )}
+
+          <SidebarMenuItem icon={CreditCard} label="정산" />
+          <SidebarMenuItem icon={HelpCircle} label="고객센터" />
         </nav>
       </aside>
 
@@ -162,14 +361,30 @@ export default function DashboardPage() {
                  <Bell size={20} />
                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#181a20]"></span>
                </button>
-               <button 
-                 onClick={() => navigate('/creator')}
-                 className="flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 rounded-lg transition-colors ml-1 lg:ml-2"
-               >
-                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full shrink-0"></div>
-                 <span className="text-sm font-medium hidden sm:block">크리에이터 님</span>
-                 <ChevronDown size={14} className="text-slate-400 hidden sm:block" />
-               </button>
+               <div className="relative group">
+                 <button 
+                   className="flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 rounded-lg transition-colors ml-1 lg:ml-2"
+                 >
+                   <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full shrink-0"></div>
+                   <span className="text-sm font-medium hidden sm:block">크리에이터 님</span>
+                   <ChevronDown size={14} className="text-slate-400 hidden sm:block" />
+                 </button>
+                 
+                 <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 p-2">
+                   <button 
+                     onClick={() => navigate('/dashboard')}
+                     className="w-full text-left px-4 py-2.5 text-sm font-bold rounded-lg mb-1 bg-blue-500 text-white"
+                   >
+                     크리에이터 스튜디오
+                   </button>
+                   <button 
+                     onClick={() => navigate('/creator')}
+                     className="w-full text-left px-4 py-2.5 text-sm font-bold rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                   >
+                     도네이터 후원페이지
+                   </button>
+                 </div>
+               </div>
              </div>
            </div>
         </header>
@@ -244,9 +459,9 @@ export default function DashboardPage() {
                </button>
              </div>
 
-             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+             <div className="flex flex-col lg:flex-row gap-6 lg:gap-0 relative">
                {/* Settings Form */}
-               <div className="lg:col-span-8 space-y-6">
+               <div className={`flex-1 min-w-0 space-y-6 transition-all duration-300 ${isPreviewOpen ? 'lg:pr-8' : ''}`}>
                  {/* Preset Group Settings */}
                  <Section title="프리셋 그룹 설정" subtitle="방송 주제 별로 프리셋을 그룹화하여 다르게 적용할 수 있습니다.">
                     <div className="flex items-center justify-between mb-8 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -260,24 +475,27 @@ export default function DashboardPage() {
                             onClick={() => setIsGroupDropdownOpen(!isGroupDropdownOpen)}
                             className="flex items-center justify-between w-64 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
-                            {selectedGroup}
+                            {activeGroup.name}
                             <ChevronDown size={16} className="text-slate-400" />
                           </button>
                           
                           {isGroupDropdownOpen && (
                             <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-10 p-2">
-                              <div className="space-y-1 mb-2">
-                                {['토크 방송', '게임 방송', '크루 후원 - A 그룹', '크루 후원 - B 그룹'].map(group => (
-                                  <label key={group} className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded cursor-pointer">
+                              <div className="space-y-1 mb-2 max-h-48 overflow-y-auto">
+                                {groups.map(group => (
+                                  <label key={group.id} className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded cursor-pointer">
                                     <input 
                                       type="radio" 
                                       name="group" 
-                                      value={group}
-                                      checked={selectedGroup === group}
-                                      onChange={() => setSelectedGroup(group)}
+                                      value={group.id}
+                                      checked={selectedGroupId === group.id}
+                                      onChange={() => {
+                                        setSelectedGroupId(group.id);
+                                        setIsGroupDropdownOpen(false);
+                                      }}
                                       className="w-4 h-4 text-blue-500 border-slate-300 focus:ring-blue-500" 
                                     />
-                                    <span className="text-sm text-slate-700 dark:text-slate-200">{group}</span>
+                                    <span className="text-sm text-slate-700 dark:text-slate-200">{group.name}</span>
                                   </label>
                                 ))}
                               </div>
@@ -304,20 +522,36 @@ export default function DashboardPage() {
                       <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-4 gap-3 sm:gap-0">
                         <div>
                           <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-                            {`{${selectedGroup}}`} 그룹 내 프리셋 목록
+                            {`{${activeGroup.name}}`} 그룹 내 프리셋 목록
                           </h4>
                           <p className="text-xs text-slate-500">알림 조건을 미리 설정하여 쉽게 추가하고 삭제 할 수 있는 기능입니다.</p>
                         </div>
-                        <button className="w-full sm:w-auto px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-1">
+                        <button 
+                          onClick={handleAddPreset}
+                          className="w-full sm:w-auto px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-1"
+                        >
                           <Plus size={16} />
                           프리셋 추가
                         </button>
                       </div>
                       
                       <div className="space-y-2">
-                        <PresetItem label="1번 프리셋" desc="후원금액 1,000 cash 이상" isChecked={true} />
-                        <PresetItem label="2번 프리셋" desc="후원금액 10,000 cash 이상" isChecked={true} />
-                        <PresetItem label="3번 프리셋" desc="조건을 입력하세요 (예: 후원금액 1,000 cash 이상)" isChecked={true} />
+                        {activeGroup.presets.length === 0 ? (
+                          <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm bg-white dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-lg">
+                            등록된 프리셋이 없습니다. 새 프리셋을 추가해보세요.
+                          </div>
+                        ) : (
+                          activeGroup.presets.map(preset => (
+                            <PresetItem 
+                              key={preset.id}
+                              label={preset.label} 
+                              desc={preset.desc} 
+                              isChecked={preset.isChecked}
+                              onDelete={() => handleDeletePreset(preset.id)}
+                              onChangeDesc={(newDesc: string) => handleChangePresetDesc(preset.id, newDesc)}
+                            />
+                          ))
+                        )}
                       </div>
                     </div>
                   </Section>
@@ -382,8 +616,22 @@ export default function DashboardPage() {
                  </Section>
                </div>
 
+               {/* Toggle Divider */}
+               <div className="hidden lg:block relative w-0 z-10">
+                 <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-slate-200 dark:bg-slate-800"></div>
+                 <div className="sticky top-1/2 -mt-8 h-0">
+                   <button 
+                     onClick={() => setIsPreviewOpen(!isPreviewOpen)}
+                     className="absolute left-1/2 -translate-x-1/2 w-6 h-16 bg-white dark:bg-[#181a20] border border-slate-200 dark:border-slate-800 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 shadow-sm transition-colors"
+                     title={isPreviewOpen ? "미리보기 닫기" : "미리보기 열기"}
+                   >
+                     {isPreviewOpen ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                   </button>
+                 </div>
+               </div>
+
                {/* Preview */}
-               <div className="lg:col-span-4 space-y-4">
+               <div className={`${isPreviewOpen ? 'w-full lg:w-[320px] xl:w-[400px] shrink-0 block lg:pl-8' : 'hidden'} space-y-4 transition-all duration-300`}>
                  <div className="sticky top-6">
                    <div className="bg-white dark:bg-[#181a20] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                      <div className="flex items-center gap-2 p-3 bg-[#1a1d24] text-white">
@@ -431,8 +679,14 @@ export default function DashboardPage() {
       </main>
       {/* Group Management Modal */}
       {isGroupModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-[480px] shadow-2xl overflow-hidden">
+        <div 
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setIsGroupModalOpen(false)}
+        >
+          <div 
+            className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-[480px] shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-100 dark:border-slate-700">
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">프리셋 그룹 관리</h2>
               <button onClick={() => setIsGroupModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -440,27 +694,51 @@ export default function DashboardPage() {
               </button>
             </div>
             <div className="p-6 space-y-3">
-              <div className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800">
-                <div className="flex items-center gap-3">
-                  <Menu size={16} className="text-slate-400 cursor-grab" />
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200">크루 후원 - A 그룹</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button className="text-slate-400 hover:text-slate-600"><Pencil size={16} /></button>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800">
-                <div className="flex items-center gap-3">
-                  <Menu size={16} className="text-slate-400 cursor-grab" />
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200">크루 후원 - B 그룹</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button className="text-slate-400 hover:text-slate-600"><Pencil size={16} /></button>
-                  <button className="text-slate-400 hover:text-red-500"><X size={16} /></button>
-                </div>
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                {groups.map(group => (
+                  <div key={group.id} className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 group/item">
+                    <div className="flex items-center gap-3 flex-1">
+                      <Menu size={16} className="text-slate-400 cursor-grab shrink-0" />
+                      {isEditingGroupName && editingGroupId === group.id ? (
+                        <input
+                          type="text"
+                          value={editingGroupName}
+                          onChange={(e) => setEditingGroupName(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSaveGroupName()}
+                          className="w-full bg-transparent text-sm text-slate-700 dark:text-slate-200 focus:outline-none border-b border-blue-500"
+                          autoFocus
+                          onBlur={handleSaveGroupName}
+                        />
+                      ) : (
+                        <span className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">{group.name}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-4">
+                      <button 
+                        onClick={() => {
+                          setEditingGroupId(group.id);
+                          setEditingGroupName(group.name);
+                          setIsEditingGroupName(true);
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteGroup(group.id)}
+                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
               
-              <button className="w-full py-3 mt-4 bg-slate-500 hover:bg-slate-600 text-white rounded-lg text-sm font-bold transition-colors">
+              <button 
+                onClick={handleAddGroup}
+                className="w-full py-3 mt-4 bg-slate-500 hover:bg-slate-600 text-white rounded-lg text-sm font-bold transition-colors"
+              >
                 + 새 그룹 추가
               </button>
             </div>
