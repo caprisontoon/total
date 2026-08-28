@@ -857,11 +857,25 @@ export default function StudioPage() {
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">ID: {selectedWidget.id}</p>
                   </div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer shrink-0" title={`위젯 사용하기 (${canvasMode === 'pc' ? 'PC' : '모바일'})`}>
-                  <input type="checkbox" className="sr-only peer" checked={selectedWidget[canvasMode].visible} onChange={() => updateWidgetLayout(selectedWidget.id, { visible: !selectedWidget[canvasMode].visible })} />
-                  <div className="w-9 h-5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
-                </label>
+                {selectedWidget.type === 'integrated-alert' && (
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0" title={`위젯 사용하기 (${canvasMode === 'pc' ? 'PC' : '모바일'})`}>
+                    <input type="checkbox" className="sr-only peer" checked={selectedWidget[canvasMode].visible} onChange={() => updateWidgetLayout(selectedWidget.id, { visible: !selectedWidget[canvasMode].visible })} />
+                    <div className="w-9 h-5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                  </label>
+                )}
               </div>
+
+              {selectedWidget.type !== 'integrated-alert' && (
+                <div className="px-3 mb-4">
+                  <div className="flex items-center justify-between p-3 bg-white dark:bg-[#22252d] border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
+                    <span className="text-sm font-medium text-slate-800 dark:text-slate-200">위젯 사용하기 ({canvasMode === 'pc' ? 'PC' : '모바일'})</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={selectedWidget[canvasMode].visible} onChange={() => updateWidgetLayout(selectedWidget.id, { visible: !selectedWidget[canvasMode].visible })} />
+                      <div className="w-9 h-5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                  </div>
+                </div>
+              )}
 
               <div className="px-3 space-y-3">
                 <Accordion title="위치 및 크기 (Transform)" defaultOpen={false}>
