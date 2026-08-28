@@ -711,8 +711,6 @@ export default function StudioPage() {
           <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
             {leftTab === 'alerts' && (
               <div className="space-y-2">
-                <div className="text-xs font-semibold text-slate-500 mb-3 px-1">통합 알림창 (Integrated Alerts)</div>
-                
                 {/* Category Tabs */}
                 <div className="flex p-1 bg-slate-200 dark:bg-[#22252d] rounded-lg mb-3 gap-1 overflow-x-auto custom-scrollbar">
                   {[
@@ -764,7 +762,6 @@ export default function StudioPage() {
             )}
             {leftTab === 'widgets' && (
               <div className="space-y-2">
-                <div className="text-xs font-semibold text-slate-500 mb-3 px-1">개별 위젯 (Individual Widgets)</div>
                 <div className="grid grid-cols-2 gap-2">
                   {WIDGETS_MENU.map(widget => {
                     const isSelected = selectedWidget?.type === widget.id;
