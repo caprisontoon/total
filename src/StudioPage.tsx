@@ -797,8 +797,8 @@ export default function StudioPage() {
             )}
             {leftTab === 'layers' && (
               <div className="space-y-1">
-                {/* Render layers in reverse order so top layer is at the top of the list */}
-                {[...widgets].reverse().map((widget) => (
+                {/* Render layers in widget order (통합 알림창 first/top, then 채팅창, ...) */}
+                {widgets.map((widget) => (
                   <div 
                     key={widget.id}
                     draggable
