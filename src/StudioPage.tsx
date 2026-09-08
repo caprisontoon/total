@@ -618,6 +618,14 @@ export default function StudioPage() {
         </div>
         
         <div className="flex items-center gap-1 sm:gap-3">
+          <button className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500 transition-colors">
+            <Video size={16} />
+            <span>방송용 데스크탑</span>
+          </button>
+          <button className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500 transition-colors">
+            <Monitor size={16} />
+            <span>시청용 데스크탑</span>
+          </button>
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
             className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full transition-colors hover:bg-slate-200 dark:hover:bg-slate-800"
