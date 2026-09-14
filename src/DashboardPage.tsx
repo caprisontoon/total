@@ -164,11 +164,11 @@ export default function DashboardPage() {
   });
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   // 메인 콘텐츠 페이지는 URL에서 결정 (state가 아니므로 새로고침해도 유지됨)
-  //  - /dashboard                     → 통합 알림창
-  //  - /dashboard/broadcast-settings  → 방송 설정
+  //  - /dashboard            → 통합 알림창
+  //  - /broadcast-settings   → 방송 설정
   const location = useLocation();
   const activePage: 'alerts' | 'broadcast' =
-    location.pathname.startsWith('/dashboard/broadcast-settings') ? 'broadcast' : 'alerts';
+    location.pathname.startsWith('/broadcast-settings') ? 'broadcast' : 'alerts';
 
   const toggleMenu = (menu: string) => {
     setExpandedMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
@@ -297,7 +297,7 @@ export default function DashboardPage() {
               </div>
               <div className="relative">
                 {activePage === 'broadcast' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>}
-                <SidebarMenuItem label="방송 설정" isSubItem active={activePage === 'broadcast'} onClick={() => navigate('/dashboard/broadcast-settings')} />
+                <SidebarMenuItem label="방송 설정" isSubItem active={activePage === 'broadcast'} onClick={() => navigate('/broadcast-settings')} />
               </div>
               <SidebarMenuItem label="위젯" isSubItem />
               <SidebarMenuItem label="크루 스튜디오" isSubItem onClick={() => window.location.href = 'https://excel-eosin-sigma.vercel.app/'} />
