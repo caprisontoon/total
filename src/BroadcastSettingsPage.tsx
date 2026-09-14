@@ -284,8 +284,9 @@ function Notice({ children, className = '' }: { children: React.ReactNode; class
 }
 
 function RadioOpt({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
+  // relative: sr-only(absolute) input을 라벨 안에 가둬 문서 높이를 늘리지 않도록 함
   return (
-    <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-slate-200">
+    <label className="relative flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-slate-200">
       <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${checked ? 'border-blue-500' : 'border-slate-300 dark:border-slate-600'}`}>
         {checked && <span className="w-2 h-2 rounded-full bg-blue-500" />}
       </span>
