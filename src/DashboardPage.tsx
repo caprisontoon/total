@@ -396,7 +396,7 @@ export default function DashboardPage() {
            </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 lg:p-8">
+        <div className="relative flex-1 overflow-y-auto p-4 lg:p-8">
           {activePage === 'broadcast' && <BroadcastSettingsPage />}
           {activePage === 'alerts' && (
            <div className="max-w-7xl mx-auto">
