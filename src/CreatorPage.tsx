@@ -159,11 +159,11 @@ export default function CreatorPage() {
             <Home size={18} />
             홈
           </a>
-          <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg">
+          <button onClick={() => navigate('/live')} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg">
             <Play size={18} />
-            추천 라이브
+            전체 라이브
             <span className="ml-auto bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">LIVE</span>
-          </a>
+          </button>
           <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg">
             <Star size={18} />
             즐겨찾기
@@ -246,6 +246,10 @@ export default function CreatorPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button onClick={() => navigate('/live/ym')} className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-bold text-white transition-colors">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              LIVE 시청
+            </button>
             <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
               <Heart size={16} />
               즐겨찾기
