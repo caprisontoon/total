@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Settings, Monitor, Grid, Mic, Trophy, 
   Heart, Package, User, ChevronRight, ChevronLeft, Bell, Volume2, 
@@ -163,8 +163,12 @@ export default function DashboardPage() {
     '계정 설정': true,
   });
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
-  // 메인 콘텐츠 페이지 전환 (통합 알림창 / 방송 설정)
-  const [activePage, setActivePage] = useState<'alerts' | 'broadcast'>('alerts');
+  // 메인 콘텐츠 페이지는 URL에서 결정 (state가 아니므로 새로고침해도 유지됨)
+  //  - /dashboard                     → 통합 알림창
+  //  - /dashboard/broadcast-settings  → 방송 설정
+  const location = useLocation();
+  const activePage: 'alerts' | 'broadcast' =
+    location.pathname.startsWith('/dashboard/broadcast-settings') ? 'broadcast' : 'alerts';
 
   const toggleMenu = (menu: string) => {
     setExpandedMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
@@ -289,11 +293,11 @@ export default function DashboardPage() {
               <SidebarMenuItem label="전체 화면 위젯" isSubItem onClick={() => navigate('/')} />
               <div className="relative">
                 {activePage === 'alerts' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>}
-                <SidebarMenuItem label="통합 알림창" isSubItem active={activePage === 'alerts'} onClick={() => setActivePage('alerts')} />
+                <SidebarMenuItem label="통합 알림창" isSubItem active={activePage === 'alerts'} onClick={() => navigate('/dashboard')} />
               </div>
               <div className="relative">
                 {activePage === 'broadcast' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>}
-                <SidebarMenuItem label="방송 설정" isSubItem active={activePage === 'broadcast'} onClick={() => setActivePage('broadcast')} />
+                <SidebarMenuItem label="방송 설정" isSubItem active={activePage === 'broadcast'} onClick={() => navigate('/dashboard/broadcast-settings')} />
               </div>
               <SidebarMenuItem label="위젯" isSubItem />
               <SidebarMenuItem label="크루 스튜디오" isSubItem onClick={() => window.location.href = 'https://excel-eosin-sigma.vercel.app/'} />
