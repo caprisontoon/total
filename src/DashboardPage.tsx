@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronUp, X, Upload, Search, Moon, Sun, BellRing,
   Pin, Menu, Pencil, Check, Lock, CreditCard, HelpCircle
 } from 'lucide-react';
+import BroadcastSettingsPage from './BroadcastSettingsPage';
 
 const SidebarMenuItem = ({ icon: Icon, label, active = false, hasSubmenu = false, isExpanded = false, isSubItem = false, onClick }: any) => (
   <button 
@@ -162,6 +163,8 @@ export default function DashboardPage() {
     '계정 설정': true,
   });
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  // 메인 콘텐츠 페이지 전환 (통합 알림창 / 방송 설정)
+  const [activePage, setActivePage] = useState<'alerts' | 'broadcast'>('alerts');
 
   const toggleMenu = (menu: string) => {
     setExpandedMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
@@ -285,8 +288,12 @@ export default function DashboardPage() {
             <div className="space-y-0.5 mb-1">
               <SidebarMenuItem label="전체 화면 위젯" isSubItem onClick={() => navigate('/')} />
               <div className="relative">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>
-                <SidebarMenuItem label="통합 알림창" isSubItem active />
+                {activePage === 'alerts' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>}
+                <SidebarMenuItem label="통합 알림창" isSubItem active={activePage === 'alerts'} onClick={() => setActivePage('alerts')} />
+              </div>
+              <div className="relative">
+                {activePage === 'broadcast' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>}
+                <SidebarMenuItem label="방송 설정" isSubItem active={activePage === 'broadcast'} onClick={() => setActivePage('broadcast')} />
               </div>
               <SidebarMenuItem label="위젯" isSubItem />
               <SidebarMenuItem label="크루 스튜디오" isSubItem onClick={() => window.location.href = 'https://excel-eosin-sigma.vercel.app/'} />
@@ -345,7 +352,7 @@ export default function DashboardPage() {
              >
                <Menu size={20} />
              </button>
-             <h1 className="text-lg lg:text-xl font-bold text-slate-800 dark:text-white">통합알림창</h1>
+             <h1 className="text-lg lg:text-xl font-bold text-slate-800 dark:text-white">{activePage === 'broadcast' ? '방송 설정' : '통합알림창'}</h1>
            </div>
            
            <div className="flex items-center gap-2 lg:gap-4">
@@ -390,6 +397,8 @@ export default function DashboardPage() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 lg:p-8">
+          {activePage === 'broadcast' && <BroadcastSettingsPage />}
+          {activePage === 'alerts' && (
            <div className="max-w-7xl mx-auto">
              {/* Tabs */}
              <div className="flex gap-2 mb-6 lg:mb-8 overflow-x-auto custom-scrollbar pb-2">
@@ -675,6 +684,7 @@ export default function DashboardPage() {
                </div>
              </div>
           </div>
+          )}
         </div>
       </main>
       {/* Group Management Modal */}
