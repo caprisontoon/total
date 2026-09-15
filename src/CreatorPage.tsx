@@ -280,7 +280,7 @@ export default function CreatorPage() {
                   크리에이터 스튜디오
                 </button>
                 <button 
-                  onClick={() => navigate('/creator')}
+                  onClick={() => navigate('/live')}
                   className="w-full text-left px-4 py-2.5 text-sm font-bold rounded-lg bg-blue-500 text-white"
                 >
                   도네이터 후원페이지
