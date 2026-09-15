@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CreatorChatPanel, useLiveChat } from './liveChat';
 import {
   Copy, Check, Eye, EyeOff, RefreshCw, Info, ExternalLink, Upload, Plus, X, Radio, Activity,
   Wifi, Monitor, Clock, Users, AlertTriangle, ShieldAlert, Link2, MessageSquare, Gauge,
@@ -96,8 +97,29 @@ export default function BroadcastSettingsPage() {
   const displayTitle = form.title.trim() || CHANNEL_NAME;
   const canReissue = state === 'offline';
 
+  // 채팅 상태는 페이지가 소유 — 새 창으로 분리해 패널이 언마운트돼도 구독이 유지된다
+  const chat = useLiveChat('ym', state !== 'offline' && form.chat !== 'off');
+
+  // ── 우측 컬럼: 미리보기 접기(방송 중 기본 접힘 → 채팅에 공간) · 채팅 팝업 분리 ──
+  const [previewOpen, setPreviewOpen] = useState(state === 'offline');
+  useEffect(() => { setPreviewOpen(state === 'offline'); }, [state]);
+  const popupRef = useRef<Window | null>(null);
+  const [poppedOut, setPoppedOut] = useState(false);
+  const popoutChat = () => {
+    const url = `/broadcast-settings/chat?channel=ym&status=${state}&slow=${form.slow}&scope=${form.chat}`;
+    const w = window.open(url, 'toonCreatorChat', 'width=420,height=760,resizable=yes');
+    if (!w) { toast('팝업이 차단되었어요. 브라우저에서 팝업을 허용한 뒤 다시 시도해 주세요.'); return; }
+    popupRef.current = w; setPoppedOut(true);
+  };
+  const restoreChat = () => { popupRef.current?.close(); popupRef.current = null; setPoppedOut(false); };
+  useEffect(() => {
+    if (!poppedOut) return;
+    const t = setInterval(() => { if (popupRef.current?.closed) { popupRef.current = null; setPoppedOut(false); } }, 800);
+    return () => clearInterval(t);
+  }, [poppedOut]);
+
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-[1400px] mx-auto">
       {/* ═══════════ 상태 히어로 ═══════════ */}
       <StatusHero state={state} elapsed={fmtTime(elapsed)} viewers={viewers} bitrate={curBitrate} reconnectLeft={reconnectLeft} onOpenChannel={() => navigate('/live/ym')} onGuide={() => { setGuideOpen(true); jump('connect'); }} setState={setState} />
 
@@ -111,7 +133,7 @@ export default function BroadcastSettingsPage() {
         <div className="ml-auto text-xs text-slate-400 whitespace-nowrap hidden sm:block">{lastSavedAt ? `마지막 저장 ${lastSavedAt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}` : '저장된 변경 없음'}</div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
+      <div className="mt-6 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
         {/* ═══════════ 좌측: 설정 흐름 ═══════════ */}
         <div className="space-y-6 min-w-0">
 
@@ -265,45 +287,64 @@ export default function BroadcastSettingsPage() {
           )}
         </div>
 
-        {/* ═══════════ 우측: 시청자 시점 미리보기 ═══════════ */}
-        <aside className="xl:sticky xl:top-14 space-y-4">
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181a20] shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        {/* ═══════════ 우측: 실시간 채팅 + 시청자 시점 미리보기 ═══════════ */}
+        <aside className="flex flex-col gap-4 min-h-0 xl:sticky xl:top-14 xl:h-[calc(100vh-10.5rem)]">
+          {/* 미리보기 — 방송 중엔 접혀서 채팅에 공간을 준다 */}
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181a20] shadow-sm overflow-hidden shrink-0">
+            <button onClick={() => setPreviewOpen(!previewOpen)} className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60">
               <span className="text-sm font-bold text-slate-800 dark:text-slate-100">시청자에게 보이는 모습</span>
-              <span className="text-[10px] font-bold text-slate-400">라이브 목록 카드</span>
-            </div>
-            <div className="p-4">
-              <div className="relative aspect-video rounded-xl overflow-hidden bg-gradient-to-br from-fuchsia-600 via-purple-700 to-indigo-800">
-                {form.thumb ? <img src={form.thumb} alt="" className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 flex flex-col items-center justify-center text-white/60"><Monitor size={22} /><span className="text-[10px] mt-1">자동 캡처</span></div>}
-                <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                  {isOnAir ? (
-                    <>
-                      <span className={`flex items-center gap-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded ${state === 'suspended' ? 'bg-amber-500' : state === 'preparing' ? 'bg-slate-600' : 'bg-red-600'}`}><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> {state === 'suspended' ? '일시중단' : state === 'preparing' ? '준비 중' : 'LIVE'}</span>
-                      {viewers > 0 && <span className="flex items-center gap-1 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded tabular-nums"><Users size={10} /> {viewers.toLocaleString()}</span>}
-                    </>
-                  ) : <span className="bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">오프라인</span>}
+              <span className="flex items-center gap-2 text-[10px] font-bold text-slate-400">{!previewOpen && <span className="truncate max-w-[140px] text-slate-500 font-medium">{displayTitle}</span>}{previewOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</span>
+            </button>
+            {previewOpen && (
+              <div className="px-4 pb-4">
+                <div className="relative aspect-video rounded-xl overflow-hidden bg-gradient-to-br from-fuchsia-600 via-purple-700 to-indigo-800">
+                  {form.thumb ? <img src={form.thumb} alt="" className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 flex flex-col items-center justify-center text-white/60"><Monitor size={22} /><span className="text-[10px] mt-1">자동 캡처</span></div>}
+                  <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                    {isOnAir ? (
+                      <>
+                        <span className={`flex items-center gap-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded ${state === 'suspended' ? 'bg-amber-500' : state === 'preparing' ? 'bg-slate-600' : 'bg-red-600'}`}><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> {state === 'suspended' ? '일시중단' : state === 'preparing' ? '준비 중' : 'LIVE'}</span>
+                        {viewers > 0 && <span className="flex items-center gap-1 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded tabular-nums"><Users size={10} /> {viewers.toLocaleString()}</span>}
+                      </>
+                    ) : <span className="bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">오프라인</span>}
+                  </div>
+                  <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">TOON</span>
+                  <span className="absolute bottom-2 left-2 bg-black/50 text-white/90 text-[10px] px-1.5 py-0.5 rounded">{form.category}</span>
+                  {form.age === 'restricted' && <span className="absolute bottom-2 right-2 bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">19</span>}
                 </div>
-                <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">TOON</span>
-                <span className="absolute bottom-2 left-2 bg-black/50 text-white/90 text-[10px] px-1.5 py-0.5 rounded">{form.category}</span>
-                {form.age === 'restricted' && <span className="absolute bottom-2 right-2 bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">19</span>}
-              </div>
-              <div className="flex items-start gap-2.5 mt-3">
-                <div className="w-9 h-9 rounded-full bg-slate-900 text-white shrink-0 flex items-center justify-center text-xs font-bold">YM</div>
-                <div className="min-w-0">
-                  <div className={`text-[13.5px] font-bold leading-snug line-clamp-2 ${form.title.trim() ? 'text-slate-900 dark:text-white' : 'text-slate-400 italic'}`}>{displayTitle}</div>
-                  <div className="text-xs text-slate-500 mt-0.5 truncate">{CHANNEL_NAME} · {form.tags.length ? form.tags.map((t) => `#${t}`).join(' ') : '태그 없음'}</div>
+                <div className="flex items-start gap-2.5 mt-3">
+                  <div className="w-9 h-9 rounded-full bg-slate-900 text-white shrink-0 flex items-center justify-center text-xs font-bold">YM</div>
+                  <div className="min-w-0">
+                    <div className={`text-[13.5px] font-bold leading-snug line-clamp-2 ${form.title.trim() ? 'text-slate-900 dark:text-white' : 'text-slate-400 italic'}`}>{displayTitle}</div>
+                    <div className="text-xs text-slate-500 mt-0.5 truncate">{CHANNEL_NAME} · {form.tags.length ? form.tags.map((t) => `#${t}`).join(' ') : '태그 없음'}</div>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs space-y-1.5">
+                  <Row2 k="채팅" v={form.chat === 'all' ? '전체' : form.chat === 'follower' ? '팔로워만' : '사용 안 함'} />
+                  <Row2 k="슬로우 모드" v={form.chat === 'off' ? '—' : form.slow === 0 ? '사용 안 함' : `${form.slow}초`} />
+                  <Row2 k="저장 상태" v={dirtyCount ? `변경 ${dirtyCount}개 미저장` : '모두 저장됨'} tone={dirtyCount ? 'amber' : 'emerald'} />
                 </div>
               </div>
-              {!form.title.trim() && <p className="mt-2 text-[11px] text-slate-400">제목이 비어 있어 채널명이 대신 표시됩니다.</p>}
-            </div>
+            )}
           </div>
 
-          {/* 저장 상태 요약 */}
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181a20] shadow-sm p-4 text-xs space-y-2">
-            <Row2 k="채팅" v={form.chat === 'all' ? '전체' : form.chat === 'follower' ? '팔로워만' : '사용 안 함'} />
-            <Row2 k="슬로우 모드" v={form.chat === 'off' ? '—' : form.slow === 0 ? '사용 안 함' : `${form.slow}초`} />
-            <Row2 k="연령" v={form.age === 'all' ? '전체 이용가' : '연령 제한'} />
-            <Row2 k="저장 상태" v={dirtyCount ? `변경 ${dirtyCount}개 미저장` : '모두 저장됨'} tone={dirtyCount ? 'amber' : 'emerald'} />
+          {/* 실시간 채팅 — 크리에이터가 방송 중 채팅을 확인 · 관리. 새 창으로 분리 가능 */}
+          <div className="flex-1 min-h-[420px] xl:min-h-0 flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            {poppedOut ? (
+              <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center bg-slate-50 dark:bg-slate-800/40">
+                <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-blue-500"><ExternalLink size={22} /></div>
+                <div>
+                  <div className="text-sm font-bold text-slate-800 dark:text-slate-100">채팅이 별도 창에서 열려 있어요</div>
+                  <div className="text-xs text-slate-500 mt-1">두 창은 실시간으로 동기화됩니다. 팝업을 닫으면 여기로 돌아옵니다.</div>
+                  <div className="text-xs text-slate-400 mt-1.5 tabular-nums">분리 중에도 수신 중 · 메시지 {chat.msgs.length}개</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => popupRef.current?.focus()} className="px-3.5 py-2 rounded-lg text-sm font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50">채팅 창으로 이동</button>
+                  <button onClick={restoreChat} className="px-3.5 py-2 rounded-lg text-sm font-bold bg-blue-500 hover:bg-blue-600 text-white">여기로 다시 가져오기</button>
+                </div>
+              </div>
+            ) : (
+              <CreatorChatPanel chat={chat} status={state} viewers={viewers} slow={form.slow} chatScope={form.chat} onPopout={popoutChat} onOpenSettings={() => jump('options')} />
+            )}
           </div>
         </aside>
       </div>
