@@ -161,14 +161,14 @@ export default function DashboardPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
     '라이브 방송': true,
-    '방송 관리': true,
+    '위젯 관리': true,
     '후원 관리': true,
     '계정 설정': true,
   });
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   // 메인 콘텐츠 페이지는 URL에서 결정 (state가 아니므로 새로고침해도 유지됨)
   //  - /dashboard             → 통합 알림창
-  //  - /broadcast-settings    → 라이브 방송 > 방송 설정
+  //  - /broadcast-settings    → 라이브 방송 > 방송 관리
   //  - /broadcast-analytics   → 라이브 방송 > 방송 분석
   const location = useLocation();
   const activePage: 'alerts' | 'broadcast' | 'analytics' =
@@ -297,7 +297,7 @@ export default function DashboardPage() {
             <div className="space-y-0.5 mb-1">
               <div className="relative">
                 {activePage === 'broadcast' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>}
-                <SidebarMenuItem label="방송 설정" isSubItem active={activePage === 'broadcast'} onClick={() => navigate('/broadcast-settings')} />
+                <SidebarMenuItem label="방송 관리" isSubItem active={activePage === 'broadcast'} onClick={() => navigate('/broadcast-settings')} />
               </div>
               <div className="relative">
                 {activePage === 'analytics' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>}
@@ -308,12 +308,12 @@ export default function DashboardPage() {
 
           <SidebarMenuItem 
             icon={Monitor}
-            label="방송 관리" 
+            label="위젯 관리" 
             hasSubmenu 
-            isExpanded={expandedMenus['방송 관리']} 
-            onClick={() => toggleMenu('방송 관리')} 
+            isExpanded={expandedMenus['위젯 관리']} 
+            onClick={() => toggleMenu('위젯 관리')} 
           />
-          {expandedMenus['방송 관리'] && (
+          {expandedMenus['위젯 관리'] && (
             <div className="space-y-0.5 mb-1">
               <SidebarMenuItem label="전체 화면 위젯" isSubItem onClick={() => navigate('/')} />
               <div className="relative">
@@ -377,7 +377,7 @@ export default function DashboardPage() {
              >
                <Menu size={20} />
              </button>
-             <h1 className="text-lg lg:text-xl font-bold text-slate-800 dark:text-white">{activePage === 'broadcast' ? '방송 설정' : activePage === 'analytics' ? '방송 분석' : '통합알림창'}</h1>
+             <h1 className="text-lg lg:text-xl font-bold text-slate-800 dark:text-white">{activePage === 'broadcast' ? '방송 관리' : activePage === 'analytics' ? '방송 분석' : '통합알림창'}</h1>
            </div>
            
            <div className="flex items-center gap-2 lg:gap-4">
