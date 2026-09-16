@@ -179,11 +179,10 @@ export default function DashboardPage() {
     setExpandedMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
   };
 
-  // 방송 관리자 — 별도 운영 도구이므로 새 창(팝업)으로 연다.
-  // 팝업 차단 시 focus()가 실패할 수 있어 참조가 없으면 조용히 무시한다.
+  // 관리자 페이지 — 별도 운영 도구이므로 새 탭으로 연다.
+  // noopener를 주면 새 탭이 window.opener로 이 창을 건드리지 못한다.
   const openAdmin = () => {
-    const w = window.open('/admin', 'toonAdminConsole', 'width=1600,height=980,resizable=yes,scrollbars=yes');
-    w?.focus();
+    window.open('/admin', '_blank', 'noopener,noreferrer');
   };
 
   const activeGroup = groups.find(g => g.id === selectedGroupId) || groups[0];
@@ -310,9 +309,9 @@ export default function DashboardPage() {
                 {activePage === 'analytics' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>}
                 <SidebarMenuItem label="방송 분석" isSubItem active={activePage === 'analytics'} onClick={() => navigate('/broadcast-analytics')} />
               </div>
-              {/* 관리자페이지는 내부 운영 도구라 스튜디오 안에 끼워넣지 않고 새 창으로 띄운다 */}
+              {/* 관리자 페이지는 내부 운영 도구라 스튜디오 안에 끼워넣지 않고 새 탭으로 띄운다 */}
               <div className="relative">
-                <SidebarMenuItem label="방송 관리자" isSubItem onClick={openAdmin} />
+                <SidebarMenuItem label="관리자 페이지" isSubItem onClick={openAdmin} />
               </div>
             </div>
           )}
