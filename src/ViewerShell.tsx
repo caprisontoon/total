@@ -11,9 +11,13 @@ import { Logo } from './Logo';
 
 type NavKey = 'home' | 'live' | 'favorites' | 'inventory';
 
+// search/onSearch를 주면 헤더 검색창이 해당 페이지의 검색어를 제어한다 (미지정 시 기존처럼 장식용).
 export default function ViewerShell({
-  children, active = 'live', hideChrome = false, title,
-}: { children: React.ReactNode; active?: NavKey; hideChrome?: boolean; title?: string }) {
+  children, active = 'live', hideChrome = false, title, search, onSearch,
+}: {
+  children: React.ReactNode; active?: NavKey; hideChrome?: boolean; title?: string;
+  search?: string; onSearch?: (v: string) => void;
+}) {
   const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -102,10 +106,16 @@ export default function ViewerShell({
           {!hideChrome && (
             <header className="h-16 border-b border-slate-200 dark:border-slate-800 px-4 lg:px-8 flex items-center justify-between shrink-0">
               <h1 className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white truncate">{title}</h1>
+              {!title && <span />}
               <div className="flex items-center gap-2 lg:gap-3">
                 <div className="relative hidden md:block">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input placeholder="라이브 · 크리에이터 검색" className="pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64" />
+                  <input
+                    value={search ?? ''}
+                    onChange={(e) => onSearch?.(e.target.value)}
+                    readOnly={!onSearch}
+                    placeholder="라이브 · 크리에이터 검색"
+                    className="pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64" />
                 </div>
                 <button className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full relative">
                   <Bell size={20} /><span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#181a20]" />
