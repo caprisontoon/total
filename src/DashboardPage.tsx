@@ -5,7 +5,7 @@ import {
   Heart, Package, User, ChevronRight, ChevronLeft, Bell, Volume2, 
   Play, Copy, Image as ImageIcon, Type, Plus, MoreHorizontal,
   ChevronDown, ChevronUp, X, Upload, Search, Moon, Sun, BellRing,
-  Pin, Menu, Pencil, Check, Lock, CreditCard, HelpCircle, Radio
+  Pin, Menu, Pencil, Check, Lock, CreditCard, HelpCircle, Radio, ShieldCheck, ExternalLink
 } from 'lucide-react';
 import BroadcastSettingsPage from './BroadcastSettingsPage';
 import BroadcastAnalyticsPage from './BroadcastAnalyticsPage';
@@ -179,7 +179,7 @@ export default function DashboardPage() {
     setExpandedMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
   };
 
-  // 관리자 페이지 — 별도 운영 도구이므로 새 탭으로 연다.
+  // 방송 관리자 페이지 — 별도 운영 도구이므로 새 탭으로 연다.
   // noopener를 주면 새 탭이 window.opener로 이 창을 건드리지 못한다.
   const openAdmin = () => {
     window.open('/admin', '_blank', 'noopener,noreferrer');
@@ -309,10 +309,6 @@ export default function DashboardPage() {
                 {activePage === 'analytics' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>}
                 <SidebarMenuItem label="방송 분석" isSubItem active={activePage === 'analytics'} onClick={() => navigate('/broadcast-analytics')} />
               </div>
-              {/* 관리자 페이지는 내부 운영 도구라 스튜디오 안에 끼워넣지 않고 새 탭으로 띄운다 */}
-              <div className="relative">
-                <SidebarMenuItem label="관리자 페이지" isSubItem onClick={openAdmin} />
-              </div>
             </div>
           )}
 
@@ -388,6 +384,19 @@ export default function DashboardPage() {
                <Menu size={20} />
              </button>
              <h1 className="text-lg lg:text-xl font-bold text-slate-800 dark:text-white">{activePage === 'broadcast' ? '방송 관리' : activePage === 'analytics' ? '방송 분석' : '통합알림창'}</h1>
+             {/* 방송 관리자 페이지 — 라이브 방송 화면(방송 관리 · 방송 분석)에서만 노출 */}
+             {(activePage === 'broadcast' || activePage === 'analytics') && (
+               <button
+                 onClick={openAdmin}
+                 title="방송 관리자 페이지를 새 탭으로 엽니다"
+                 className="ml-1 lg:ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs lg:text-sm font-bold rounded-lg transition-colors shrink-0"
+               >
+                 <ShieldCheck size={15} />
+                 <span className="hidden sm:inline">방송 관리자 페이지</span>
+                 <span className="sm:hidden">관리자</span>
+                 <ExternalLink size={13} className="opacity-80" />
+               </button>
+             )}
            </div>
            
            <div className="flex items-center gap-2 lg:gap-4">
