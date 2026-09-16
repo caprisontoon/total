@@ -6,6 +6,7 @@ import {
   LogOut, Heart, HelpCircle, Smartphone, Play, Image as ImageIcon,
   Gift, Box, Gamepad2, Mic, Eye, ThumbsUp, Clock, X, ExternalLink
 } from 'lucide-react';
+import { Logo } from './Logo';
 
 export default function CreatorPage() {
   const navigate = useNavigate();
@@ -97,10 +98,9 @@ export default function CreatorPage() {
           <Menu size={24} className="text-slate-600 dark:text-slate-300" />
           <button 
             onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-1 text-blue-500 font-bold text-xl hover:opacity-80 transition-opacity"
+            className="hover:opacity-80 transition-opacity"
           >
-            <span className="text-2xl">+</span>
-            <span className="text-slate-800 dark:text-white">toonation</span>
+            <Logo markClassName="h-[26px] w-auto" wordClassName="text-lg" />
           </button>
         </div>
 

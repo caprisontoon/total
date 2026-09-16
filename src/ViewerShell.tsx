@@ -4,6 +4,7 @@ import {
   Menu, Search, Bell, ChevronDown, Home, Play, Star, Package, User, Trophy,
   Gamepad2, ShoppingBag, Headphones, Smartphone,
 } from 'lucide-react';
+import { Logo } from './Logo';
 
 // 시청자(도네이터) 측 공통 셸 — 후원 페이지(CreatorPage)와 같은 사이드바 톤을 유지한다.
 // hideChrome: 극장 모드 등에서 사이드바 · 상단 헤더를 숨기고 콘텐츠만 남긴다.
@@ -31,9 +32,8 @@ export default function ViewerShell({
           <aside className="w-64 border-r border-slate-200 dark:border-slate-800 flex flex-col bg-white dark:bg-[#181a20] shrink-0 overflow-y-auto custom-scrollbar">
             <div className="p-4 flex items-center gap-2">
               <Menu size={24} className="text-slate-600 dark:text-slate-300" />
-              <button onClick={() => navigate('/dashboard')} className="flex items-center gap-1 text-blue-500 font-bold text-xl hover:opacity-80 transition-opacity">
-                <span className="text-2xl">+</span>
-                <span className="text-slate-800 dark:text-white">toonation</span>
+              <button onClick={() => navigate('/dashboard')} className="hover:opacity-80 transition-opacity">
+                <Logo markClassName="h-[26px] w-auto" wordClassName="text-lg" />
               </button>
             </div>
 
