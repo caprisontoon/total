@@ -17,6 +17,7 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         {/* 방송 설정 전용 경로 — 새로고침해도 방송 설정 페이지가 유지됨 */}
         <Route path="/broadcast-settings" element={<DashboardPage />} />
+        <Route path="/broadcast-analytics" element={<DashboardPage />} />
         {/* 방송 관리 채팅을 별도 창으로 분리한 팝업 */}
         <Route path="/broadcast-settings/chat" element={<ChatPopupPage />} />
         <Route path="/creator" element={<CreatorPage />} />
