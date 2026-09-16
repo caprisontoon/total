@@ -8,6 +8,7 @@ import WatchDesktopPage from './WatchDesktopPage';
 import LivePage from './LivePage';
 import ChannelPage from './ChannelPage';
 import ChatPopupPage from './ChatPopupPage';
+import AdminPage from './AdminPage';
 
 export default function App() {
   return (
@@ -20,6 +21,8 @@ export default function App() {
         <Route path="/broadcast-analytics" element={<DashboardPage />} />
         {/* 방송 관리 채팅을 별도 창으로 분리한 팝업 */}
         <Route path="/broadcast-settings/chat" element={<ChatPopupPage />} />
+        {/* ⑨ 관리자 페이지 — 새 창/팝업으로 열린다 */}
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="/creator" element={<CreatorPage />} />
         {/* 시청 · 채널 화면 (⑦) — 전체 라이브 목록 → 카드 클릭 → 채널 시청 */}
         <Route path="/live" element={<LivePage />} />
