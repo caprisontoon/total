@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import BroadcastSettingsPage from './BroadcastSettingsPage';
 import BroadcastAnalyticsPage from './BroadcastAnalyticsPage';
+import { Logo } from './Logo';
 
 const SidebarMenuItem = ({ icon: Icon, label, active = false, hasSubmenu = false, isExpanded = false, isSubItem = false, onClick }: any) => (
   <button 
@@ -274,8 +275,7 @@ export default function DashboardPage() {
       <aside className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition duration-200 ease-in-out w-64 bg-white dark:bg-[#181a20] border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 z-30`}>
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-800">
-           <span className="text-blue-500 font-black text-xl mr-2">+OO</span>
-           <span className="font-bold text-lg tracking-tight">toonation</span>
+           <Logo markClassName="h-[26px] w-auto" wordClassName="text-lg" />
            <button className="ml-auto text-slate-400 hover:text-slate-600">
              <ChevronRight size={16} className="rotate-180"/>
            </button>

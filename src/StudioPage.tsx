@@ -14,6 +14,7 @@ import {
   Box, Gamepad2, GripVertical, BellRing, LayoutGrid, MessageSquare, QrCode, PiggyBank, Bell, Coins, Trophy, Users, Star, Package, Edit2,
   Heart, Zap, Gem, DollarSign, UserPlus, Sun, Moon, Menu, Check
 } from 'lucide-react';
+import { LogoMark } from './Logo';
 
 // --- Types ---
 type WidgetType = string;
@@ -601,9 +602,9 @@ export default function StudioPage() {
           </button>
           <button 
             onClick={() => navigate('/dashboard')}
-            className="hidden sm:flex items-center justify-center w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-black text-xl hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+            className="hidden sm:flex items-center justify-center w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
           >
-            +OO
+            <LogoMark className="w-7 h-auto" />
           </button>
           <div className="flex items-center gap-2 text-blue-500 font-bold text-base sm:text-lg tracking-tight">
             <Monitor size={18} className="sm:w-5 sm:h-5" />
