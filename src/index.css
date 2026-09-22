@@ -1,3 +1,104 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* ── 라이브 채팅 디자인 토큰 ──
+   채팅 프로토타입의 CSS 변수를 그대로 옮긴 값. 전역 이름 충돌을 피하려고 chat- 접두사만 붙였다.
+   프로토타입은 prefers-color-scheme + [data-theme]를 함께 썼지만, 이 레포는 Tailwind의
+   dark 클래스 전략을 쓰므로 .dark 한 곳만 소스로 둔다 (OS 미디어쿼리 분기 없음). */
+:root {
+  --chat-bg: #eef1f6;
+  --chat-panel: #ffffff;
+  --chat-panel-2: #f3f5fa;
+  --chat-panel-3: #e9edf4;
+  --chat-ink: #161a23;
+  --chat-ink-2: #5a6472;
+  --chat-ink-3: #8a94a4;
+  --chat-line: #e2e7f0;
+  --chat-line-2: #eef1f7;
+  --chat-accent: #4655e6;
+  --chat-accent-2: #6b7bff;
+  --chat-accent-soft: #e9ebfd;
+  --chat-sys: #8a94a4;
+  --chat-sys-bg: #eef1f7;
+  --chat-blind: #8a94a4;
+  --chat-blind-bg: #e9edf4;
+  --chat-bj: #e23b52;
+  --chat-mgr: #2f74d0;
+  --chat-sub: #7b4dff;
+  --chat-fan: #d98a00;
+  --chat-sup: #0bab8a;
+  --chat-don-a: #0bab8a;
+  --chat-don-b: #4655e6;
+  --chat-don-c: #7b4dff;
+  --chat-don-d: #d98a00;
+  --chat-ok: #1f9d61;
+  --chat-warn: #c77400;
+  --chat-crit: #d63241;
+  --chat-radius: 14px;
+  --chat-cfont: 15px;
+}
+
+.dark {
+  --chat-bg: #0e1017;
+  --chat-panel: #161923;
+  --chat-panel-2: #1d2130;
+  --chat-panel-3: #252a3b;
+  --chat-ink: #e8ebf3;
+  --chat-ink-2: #a0a9bb;
+  --chat-ink-3: #6c7688;
+  --chat-line: #252a3b;
+  --chat-line-2: #1a1e29;
+  --chat-accent: #6b7bff;
+  --chat-accent-2: #8390ff;
+  --chat-accent-soft: #1a2143;
+  --chat-sys: #7a8398;
+  --chat-sys-bg: #1b2030;
+  --chat-blind: #6c7688;
+  --chat-blind-bg: #1b2030;
+  --chat-bj: #ff5568;
+  --chat-mgr: #5b9dff;
+  --chat-sub: #a98bff;
+  --chat-fan: #f0b429;
+  --chat-sup: #20c9a6;
+  --chat-don-a: #12d4ad;
+  --chat-don-b: #6b7bff;
+  --chat-don-c: #a98bff;
+  --chat-don-d: #f0b429;
+  --chat-ok: #3ed494;
+  --chat-warn: #f0ad4e;
+  --chat-crit: #ff6b74;
+}
+
+/* 토큰을 Tailwind 유틸리티로 노출한다 (bg-chat-panel, text-chat-ink, border-chat-line …) */
+@theme inline {
+  --color-chat-bg: var(--chat-bg);
+  --color-chat-panel: var(--chat-panel);
+  --color-chat-panel-2: var(--chat-panel-2);
+  --color-chat-panel-3: var(--chat-panel-3);
+  --color-chat-ink: var(--chat-ink);
+  --color-chat-ink-2: var(--chat-ink-2);
+  --color-chat-ink-3: var(--chat-ink-3);
+  --color-chat-line: var(--chat-line);
+  --color-chat-line-2: var(--chat-line-2);
+  --color-chat-accent: var(--chat-accent);
+  --color-chat-accent-2: var(--chat-accent-2);
+  --color-chat-accent-soft: var(--chat-accent-soft);
+  --color-chat-sys: var(--chat-sys);
+  --color-chat-sys-bg: var(--chat-sys-bg);
+  --color-chat-blind: var(--chat-blind);
+  --color-chat-blind-bg: var(--chat-blind-bg);
+  --color-chat-bj: var(--chat-bj);
+  --color-chat-mgr: var(--chat-mgr);
+  --color-chat-sub: var(--chat-sub);
+  --color-chat-fan: var(--chat-fan);
+  --color-chat-sup: var(--chat-sup);
+  --color-chat-don-a: var(--chat-don-a);
+  --color-chat-don-b: var(--chat-don-b);
+  --color-chat-don-c: var(--chat-don-c);
+  --color-chat-don-d: var(--chat-don-d);
+  --color-chat-ok: var(--chat-ok);
+  --color-chat-warn: var(--chat-warn);
+  --color-chat-crit: var(--chat-crit);
+  --radius-chat: var(--chat-radius);
+}
