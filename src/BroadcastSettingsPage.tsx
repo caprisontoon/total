@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreatorChatPanel, useLiveChat } from './liveChat';
+import CreatorChat from './creatorchat/CreatorChat';
+import { useCreatorChat } from './creatorchat/store';
 import {
   Copy, Check, Eye, EyeOff, RefreshCw, Info, ExternalLink, Upload, Plus, X, Radio, Activity,
   Wifi, Monitor, Clock, Users, AlertTriangle, ShieldAlert, Link2, MessageSquare, Gauge,
@@ -163,7 +164,14 @@ export default function BroadcastSettingsPage() {
   const canReissue = state === 'offline';
 
   // 채팅 상태는 페이지가 소유 — 새 창으로 분리해 패널이 언마운트돼도 구독이 유지된다
-  const chat = useLiveChat('ym', state !== 'offline' && form.chat !== 'off');
+  const chat = useCreatorChat('ym', state !== 'offline' && form.chat !== 'off');
+  // 방송 정보(3. 채팅 · 옵션)에 저장한 참여 범위 · 슬로우가 채팅 정책의 기본값이 된다.
+  // 방송 중 채팅 패널의 '채널 조치'에서 바꾼 값은 이번 방송에만 적용되는 즉시 조정.
+  useEffect(() => {
+    if (saved.chat === 'off') return;
+    chat.setPolicy({ participation: saved.chat === 'follower' ? 'follower' : 'all', slowSec: saved.slow });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saved.chat, saved.slow]);
 
   // ── 우측 컬럼: 미리보기 접기(방송 중 기본 접힘 → 채팅에 공간) · 채팅 팝업 분리 ──
   const [previewOpen, setPreviewOpen] = useState(state === 'offline');
@@ -171,8 +179,8 @@ export default function BroadcastSettingsPage() {
   const popupRef = useRef<Window | null>(null);
   const [poppedOut, setPoppedOut] = useState(false);
   const popoutChat = () => {
-    const url = `/broadcast-settings/chat?channel=ym&status=${state}&slow=${form.slow}&scope=${form.chat}`;
-    const w = window.open(url, 'toonCreatorChat', 'width=420,height=760,resizable=yes');
+    const url = `/broadcast-settings/chat?channel=ym&status=${state}`;
+    const w = window.open(url, 'toonCreatorChat', 'width=440,height=820,resizable=yes');
     if (!w) { toast('팝업이 차단되었어요. 브라우저에서 팝업을 허용한 뒤 다시 시도해 주세요.'); return; }
     popupRef.current = w; setPoppedOut(true);
   };
@@ -474,7 +482,7 @@ export default function BroadcastSettingsPage() {
                 <div>
                   <div className="text-sm font-bold text-slate-800 dark:text-slate-100">채팅이 별도 창에서 열려 있어요</div>
                   <div className="text-xs text-slate-500 mt-1">두 창은 실시간으로 동기화됩니다. 팝업을 닫으면 여기로 돌아옵니다.</div>
-                  <div className="text-xs text-slate-400 mt-1.5 tabular-nums">분리 중에도 수신 중 · 메시지 {chat.msgs.length}개</div>
+                  <div className="text-xs text-slate-400 mt-1.5 tabular-nums">분리 중에도 수신 중 · 메시지 {chat.totalCount}개{chat.held.length ? ` · 보류 ${chat.held.length}건` : ''}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => popupRef.current?.focus()} className="px-3.5 py-2 rounded-lg text-sm font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50">채팅 창으로 이동</button>
@@ -482,7 +490,7 @@ export default function BroadcastSettingsPage() {
                 </div>
               </div>
             ) : (
-              <CreatorChatPanel chat={chat} status={state} viewers={viewers} slow={form.slow} chatScope={form.chat} onPopout={popoutChat} onOpenSettings={() => jump('options')} />
+              <CreatorChat chat={chat} status={state} viewers={viewers} onPopout={popoutChat} onOpenBroadcastSettings={() => jump('info')} />
             )}
           </div>
         </aside>
