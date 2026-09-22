@@ -168,7 +168,7 @@ export default function DashboardPage() {
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   // 메인 콘텐츠 페이지는 URL에서 결정 (state가 아니므로 새로고침해도 유지됨)
   //  - /dashboard             → 통합 알림창
-  //  - /broadcast-settings    → 라이브 방송 > 방송 관리
+  //  - /broadcast-settings    → 라이브 방송 > 방송 설정
   //  - /broadcast-analytics   → 라이브 방송 > 방송 분석
   const location = useLocation();
   const activePage: 'alerts' | 'broadcast' | 'analytics' =
@@ -303,7 +303,7 @@ export default function DashboardPage() {
             <div className="space-y-0.5 mb-1">
               <div className="relative">
                 {activePage === 'broadcast' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>}
-                <SidebarMenuItem label="방송 관리" isSubItem active={activePage === 'broadcast'} onClick={() => navigate('/broadcast-settings')} />
+                <SidebarMenuItem label="방송 설정" isSubItem active={activePage === 'broadcast'} onClick={() => navigate('/broadcast-settings')} />
               </div>
               <div className="relative">
                 {activePage === 'analytics' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>}
@@ -383,8 +383,8 @@ export default function DashboardPage() {
              >
                <Menu size={20} />
              </button>
-             <h1 className="text-lg lg:text-xl font-bold text-slate-800 dark:text-white">{activePage === 'broadcast' ? '방송 관리' : activePage === 'analytics' ? '방송 분석' : '통합알림창'}</h1>
-             {/* 방송 관리자 페이지 — 라이브 방송 화면(방송 관리 · 방송 분석)에서만 노출 */}
+             <h1 className="text-lg lg:text-xl font-bold text-slate-800 dark:text-white">{activePage === 'broadcast' ? '방송 설정' : activePage === 'analytics' ? '방송 분석' : '통합알림창'}</h1>
+             {/* 방송 관리자 페이지 — 라이브 방송 화면(방송 설정 · 방송 분석)에서만 노출 */}
              {(activePage === 'broadcast' || activePage === 'analytics') && (
                <button
                  onClick={openAdmin}
