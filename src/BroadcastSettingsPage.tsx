@@ -30,8 +30,47 @@ const PROGRAMS: { id: Program; name: string; steps: string[] }[] = [
 
 const genKey = () => 'live_' + Array.from({ length: 24 }, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('');
 
-type Form = { title: string; category: string; tags: string[]; thumb: string | null; chat: 'all' | 'follower' | 'off'; slow: number; age: 'all' | 'restricted' };
-const INITIAL_FORM: Form = { title: '', category: '토크', tags: ['엑셀방송'], thumb: null, chat: 'all', slow: 0, age: 'all' };
+// 권장 인코딩 설정 (벤치마킹 #19 · KICK 유일 패턴) — 읽기 전용 2열 표 + 필드별 복사.
+// 값은 ②번 개발자 회신(화질 단계 · 비트레이트 상한) 전 잠정값이다.
+const ENCODING: { k: string; v: string; note?: string }[] = [
+  { k: '해상도', v: '1920x1080' },
+  { k: '프레임레이트', v: '60fps', note: '30fps도 지원' },
+  { k: '레이트 제어', v: 'CBR', note: '고정 비트레이트' },
+  { k: '비트레이트', v: '6000 kbps', note: '상한은 정책 확정 후 안내' },
+  { k: '키프레임 간격', v: '2초', note: '0(자동)은 권장하지 않음' },
+  { k: '인코더', v: 'x264 / NVENC (H.264)' },
+  { k: '오디오', v: '160 kbps · 48 kHz · 스테레오' },
+];
+
+// 기술 수치의 자연어 번역 (#13) — 비개발 크리에이터가 대다수라 수치와 판정을 함께 준다.
+type Quality = 'good' | 'fair' | 'bad' | 'none';
+const QUALITY_META: Record<Quality, { label: string; cls: string; desc: string }> = {
+  good: { label: '매우 좋음', cls: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50', desc: '비트레이트와 수신 지연이 모두 권장 범위입니다. 그대로 방송하세요.' },
+  fair: { label: '보통', cls: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/50', desc: '시청자 일부에게 화질 저하가 보일 수 있습니다. 송출 상태에서 수치를 확인해 보세요.' },
+  bad: { label: '불안정', cls: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50', desc: '끊김 · 화질 저하가 발생하고 있습니다. 송출 상태에서 원인을 확인하세요.' },
+  none: { label: '측정 전', cls: 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700', desc: '아직 송출 신호를 받지 못해 판정할 수 없습니다.' },
+};
+function judgeQuality(state: StreamState, bitrate: number, delaySec: number): Quality {
+  if (state === 'offline') return 'none';
+  if (state === 'suspended') return 'bad';
+  if (state === 'preparing') return 'fair';
+  if (bitrate >= 4500 && delaySec < 2.5) return 'good';
+  if (bitrate >= 2500 && delaySec < 4) return 'fair';
+  return 'bad';
+}
+
+// 송출 상태 지표 정의 (#17) — 집계 기준까지 밝혀 관리자 통계와의 혼선을 줄인다.
+const STATUS_DEFS: Record<string, string> = {
+  상태: '서버가 판단한 현재 방송 상태입니다. 송출 프로그램의 표시와 최대 몇 초 차이가 날 수 있어요.',
+  비트레이트: '서버가 실제로 수신한 초당 데이터량(kbps)입니다. 송출 프로그램이 보내는 설정값이 아니라 도착한 값입니다.',
+  '해상도 · fps': '수신한 영상 원본의 해상도와 프레임레이트입니다. 시청자는 화질 단계에 따라 더 낮은 값으로 볼 수 있어요.',
+  '수신 지연': '송출 프로그램에서 서버까지 도달하는 데 걸린 시간입니다. 시청자가 보는 지연과는 다릅니다.',
+  시청자: '지금 이 방송을 보고 있는 동시 시청자 수입니다. 중복 접속은 제외하고 셉니다.',
+  '방송 시간': '이번 회차가 시작된 뒤 지난 시간입니다. 일시중단 구간도 포함합니다.',
+};
+
+type Form = { title: string; category: string; tags: string[]; thumb: string | null; chat: 'all' | 'follower' | 'off'; slow: number; age: 'all' | 'restricted'; hidden: boolean };
+const INITIAL_FORM: Form = { title: '', category: '토크', tags: ['엑셀방송'], thumb: null, chat: 'all', slow: 0, age: 'all', hidden: false };
 
 export default function BroadcastSettingsPage() {
   const navigate = useNavigate();
@@ -41,18 +80,21 @@ export default function BroadcastSettingsPage() {
   const [elapsed, setElapsed] = useState(84 * 60 + 7);
   const [reconnectLeft, setReconnectLeft] = useState(90);
   const [hist, setHist] = useState<number[]>(() => Array.from({ length: 36 }, () => 5800 + Math.round(Math.random() * 400)));
+  // 데모: 회선 상태 시나리오 — 자연어 판정 칩(#13)이 3단계 모두 보이도록 비트레이트 · 지연을 흔든다
+  const [netDemo, setNetDemo] = useState<'good' | 'fair' | 'bad'>('good');
+  const NET = { good: { base: 5600, jitter: 600, delay: 2.1 }, fair: { base: 2900, jitter: 900, delay: 3.4 }, bad: { base: 1200, jitter: 1400, delay: 5.8 } }[netDemo];
   const viewers = state === 'live' ? 1204 : state === 'suspended' ? 1180 : 0;
   const isOnAir = state !== 'offline';
 
   useEffect(() => {
     const t = setInterval(() => {
-      if (state === 'live') { setElapsed((s) => s + 1); setHist((h) => [...h.slice(1), 5600 + Math.round(Math.random() * 600)]); }
+      if (state === 'live') { setElapsed((s) => s + 1); setHist((h) => [...h.slice(1), Math.max(300, NET.base + Math.round((Math.random() - 0.3) * NET.jitter))]); }
       else if (state === 'suspended') { setElapsed((s) => s + 1); setHist((h) => [...h.slice(1), 0]); setReconnectLeft((s) => (s <= 1 ? 0 : s - 1)); }
       else if (state === 'preparing') { setHist((h) => [...h.slice(1), 2000 + Math.round(Math.random() * 3000)]); }
       else { setHist((h) => [...h.slice(1), 0]); }
     }, 1000);
     return () => clearInterval(t);
-  }, [state]);
+  }, [state, NET.base, NET.jitter]);
   useEffect(() => { if (state !== 'suspended') setReconnectLeft(90); if (state === 'offline') setHist(Array(36).fill(0)); }, [state]);
   useEffect(() => { if (state === 'suspended' && reconnectLeft === 0) { setState('offline'); setElapsed(0); } }, [reconnectLeft, state]); // 90초 경과 → 종료 (④-4-3)
 
@@ -60,7 +102,7 @@ export default function BroadcastSettingsPage() {
   const [streamKey, setStreamKey] = useState(genKey);
   const [revealed, setRevealed] = useState(false);
   const [revealLeft, setRevealLeft] = useState(0);
-  const [copied, setCopied] = useState<'server' | 'key' | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
   const [reissueOpen, setReissueOpen] = useState(false);
   const [program, setProgram] = useState<Program>('obs');
   const [guideOpen, setGuideOpen] = useState(false);
@@ -70,8 +112,29 @@ export default function BroadcastSettingsPage() {
     const t = setInterval(() => setRevealLeft((s) => { if (s <= 1) { clearInterval(t); setRevealed(false); return 0; } return s - 1; }), 1000);
     return () => clearInterval(t);
   }, [revealed]);
-  const copy = (what: 'server' | 'key', text: string) => { navigator.clipboard?.writeText(text).catch(() => {}); setCopied(what); setTimeout(() => setCopied(null), 1500); };
+  const copy = (what: string, text: string) => { navigator.clipboard?.writeText(text).catch(() => {}); setCopied(what); setTimeout(() => setCopied(null), 1500); };
   const reissue = () => { setStreamKey(genKey()); setReissueOpen(false); setRevealed(true); toast('새 스트림키가 발급되었습니다. 기존 키는 즉시 무효화됐어요.'); };
+
+  // OBS 프로필 다운로드 (#12 · KICK 유일 패턴) — 서버 · 키 · 권장 인코딩을 한 파일로.
+  // 값을 읽고 옮겨 적게 하는 대신 파일 하나로 자동 적용시켜 진입 장벽을 낮춘다.
+  const downloadObsProfile = () => {
+    const profile = {
+      name: `Toonation - ${CHANNEL_NAME}`,
+      stream: { service: 'Custom', server: SERVER_URL, key: streamKey },
+      output: { mode: 'Advanced', encoder: 'x264', rate_control: 'CBR', bitrate: 6000, keyint_sec: 2, preset: 'veryfast', profile: 'high' },
+      video: { base: '1920x1080', output: '1920x1080', fps: 60 },
+      audio: { bitrate: 160, sample_rate: 48000, channels: 'Stereo' },
+      generated_at: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    // 앵커를 DOM에 붙여야 download 속성이 적용된다. 파일명은 ASCII(한글 파일명은 일부 브라우저가 무시).
+    const a = document.createElement('a');
+    a.href = url; a.download = 'toonation-obs-profile.json'; a.style.display = 'none';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    toast('OBS 프로필을 내려받았습니다. 스트림키가 포함돼 있으니 파일을 공유하지 마세요.');
+  };
 
   // ── 방송 정보 · 옵션 (더티 추적) ──
   const [form, setForm] = useState<Form>(INITIAL_FORM);
@@ -94,6 +157,8 @@ export default function BroadcastSettingsPage() {
 
   const fmtTime = (s: number) => `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
   const curBitrate = hist[hist.length - 1];
+  const delaySec = state === 'live' ? NET.delay : 0;
+  const quality = judgeQuality(state, curBitrate, delaySec);
   const displayTitle = form.title.trim() || CHANNEL_NAME;
   const canReissue = state === 'offline';
 
@@ -121,7 +186,9 @@ export default function BroadcastSettingsPage() {
   return (
     <div className="max-w-[1400px] mx-auto">
       {/* ═══════════ 상태 히어로 ═══════════ */}
-      <StatusHero state={state} elapsed={fmtTime(elapsed)} viewers={viewers} bitrate={curBitrate} reconnectLeft={reconnectLeft} onOpenChannel={() => navigate('/live/ym')} onGuide={() => { setGuideOpen(true); jump('connect'); }} setState={setState} />
+      <StatusHero state={state} elapsed={fmtTime(elapsed)} viewers={viewers} bitrate={curBitrate} reconnectLeft={reconnectLeft} quality={quality}
+        onOpenChannel={() => navigate('/live/ym')} onGuide={() => { setGuideOpen(true); jump('connect'); }} onDiagnose={() => jump('status')}
+        setState={setState} netDemo={netDemo} setNetDemo={setNetDemo} />
 
       {/* 섹션 내비 */}
       <div className="sticky top-0 z-20 -mx-4 lg:-mx-8 px-4 lg:px-8 py-2 mt-5 bg-gray-50/90 dark:bg-[#0f1115]/90 backdrop-blur border-b border-slate-200/60 dark:border-slate-800/60 flex items-center gap-1.5 overflow-x-auto">
@@ -167,6 +234,42 @@ export default function BroadcastSettingsPage() {
             <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-rose-50/70 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/30 px-4 py-3 text-xs text-slate-600 dark:text-slate-300">
               <ShieldAlert size={15} className="text-rose-500 mt-px shrink-0" />
               <span><b className="text-slate-800 dark:text-slate-100">가장 흔한 유출 경로는 방송 중 설정창 노출입니다.</b> 송출 프로그램 설정 화면이 방송에 그대로 나가면 키가 유출돼요. 노출됐다면 방송 종료 후 즉시 재발급하세요. 같은 키로 두 곳에서 동시에 송출하면 나중 연결은 거부됩니다.</span>
+            </div>
+
+            {/* 권장 인코딩 설정 (#19) — 읽기 전용 2열 표 + 필드별 복사. OBS 프로필(#12)의 선행 단계 */}
+            <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-800/60">
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-100"><Gauge size={15} className="text-blue-500" /> 권장 인코딩 설정</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">아래 값을 송출 프로그램 출력 설정에 그대로 넣으면 됩니다. 값을 옮겨 적기 번거로우면 프로필 파일로 한 번에 적용하세요.</div>
+                </div>
+                <button onClick={downloadObsProfile} className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-bold text-white bg-blue-500 hover:bg-blue-600">
+                  <Upload size={14} className="rotate-180" /> OBS 프로필 다운로드
+                </button>
+              </div>
+              <table className="w-full text-[13px]">
+                <tbody>
+                  {ENCODING.map((row) => (
+                    <tr key={row.k} className="border-t border-slate-100 dark:border-slate-800">
+                      <th className="w-32 text-left px-4 py-2 font-semibold text-slate-600 dark:text-slate-300">{row.k}</th>
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <code className="font-mono text-slate-800 dark:text-slate-100">{row.v}</code>
+                          {row.note && <span className="text-[11px] text-slate-400">{row.note}</span>}
+                        </div>
+                      </td>
+                      <td className="w-20 pr-3 py-1.5 text-right">
+                        <button onClick={() => copy(`enc-${row.k}`, row.v)} className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold ${copied === `enc-${row.k}` ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                          {copied === `enc-${row.k}` ? <><Check size={11} /> 복사됨</> : <><Copy size={11} /> 복사</>}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="px-4 py-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 flex items-start gap-1.5">
+                <Info size={12} className="mt-px shrink-0" /> 프로필 파일에는 스트림키가 포함됩니다. OBS에서 프로필 → 가져오기로 불러온 뒤 파일은 삭제하세요. 비트레이트 상한은 정책 확정 후 바뀔 수 있어요.
+              </p>
             </div>
 
             {/* 인라인 가이드 */}
@@ -246,6 +349,17 @@ export default function BroadcastSettingsPage() {
               <Field label="연령 제한" right={<span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-900/20 text-amber-600">정책 확정 전</span>}>
                 <Segmented value={form.age} onChange={(v) => set('age', v as Form['age'])} options={[['all', '전체 이용가'], ['restricted', '연령 제한']]} />
               </Field>
+              {/* 방송숨김 (#11 · SOOP F-053) — 리허설을 별도 모드가 아니라 방송 속성 한 줄로. 트레이드오프는 상시 문장으로(#3) */}
+              <Field label="테스트 송출" right={form.hidden ? <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 dark:bg-white text-white dark:text-slate-900">숨김 중</span> : undefined}>
+                <label className={`flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-colors ${form.hidden ? 'border-slate-800 dark:border-white bg-slate-50 dark:bg-slate-800/60' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40'}`}>
+                  <input type="checkbox" checked={form.hidden} onChange={(e) => set('hidden', e.target.checked)} className="mt-0.5 w-4 h-4 accent-slate-800 dark:accent-white" />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">방송숨김</span>
+                    <span className="block text-xs text-slate-500 mt-0.5 leading-relaxed">테스트 방송 시 사용하는 기능입니다. 시청자가 보는 라이브 목록에 노출되지 않으며 즐겨찾기 알림을 보내지 않습니다. 채널 주소로 직접 들어온 사람은 볼 수 있어요.</span>
+                    {form.hidden && <span className="block text-xs text-amber-600 dark:text-amber-400 mt-1.5 font-semibold">저장 후 다음 방송을 시작하면 적용됩니다. 진행 중인 방송에는 영향이 없어요.</span>}
+                  </span>
+                </label>
+              </Field>
               <div className="flex items-start gap-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 px-4 py-3 text-xs text-slate-600 dark:text-slate-300">
                 <Wifi size={15} className="text-emerald-500 mt-px shrink-0" />
                 <span><b className="text-slate-800 dark:text-slate-100">고화질 시청 안내</b> — 시청자가 720p 이상으로 보려면 그리드(P2P 분산 전송) 설치가 필요합니다. 크리에이터가 설정하는 값은 아니며, 시청 화면에서 자동으로 안내됩니다.</span>
@@ -255,13 +369,32 @@ export default function BroadcastSettingsPage() {
 
           {/* ── 4. 송출 상태 ── */}
           <Card ref={secRefs.status} step="4" title="송출 상태" desc="서버가 실제로 수신한 값입니다. 송출 프로그램이 보여주는 수치와 다를 수 있어요.">
+            {/* 연결 상태 판정 (#13) — 수치는 그대로 두고 판정을 함께 준다 */}
+            <div className={`mb-4 flex items-start gap-3 rounded-xl border px-4 py-3 ${QUALITY_META[quality].cls}`}>
+              <Wifi size={16} className="mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <div className="text-sm font-bold">연결 상태 · {QUALITY_META[quality].label}</div>
+                <div className="text-xs opacity-90 mt-0.5">{QUALITY_META[quality].desc}</div>
+                {quality === 'bad' && state === 'live' && (
+                  <ul className="mt-2 text-xs space-y-1 list-disc pl-4 opacity-90">
+                    <li>송출 프로그램의 비트레이트를 <b>권장값(6,000 kbps) 이하로 낮추거나</b>, 네트워크 상태를 확인하세요.</li>
+                    <li>유선 연결로 바꾸거나 같은 회선의 다른 업로드(클라우드 동기화 등)를 멈춰 보세요.</li>
+                  </ul>
+                )}
+              </div>
+            </div>
+            {/* '아직 집계 전'은 — · '집계했더니 0'은 0 (#18) — 오프라인은 측정값 자체가 없으므로 — */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-              <Tile icon={Radio} label="상태" value={STATE_META[state].label} tone={STATE_META[state].tone} />
-              <Tile icon={Activity} label="비트레이트" value={isOnAir && curBitrate ? `${curBitrate.toLocaleString()} kbps` : '—'} sub={state === 'live' ? '안정' : undefined} />
-              <Tile icon={Monitor} label="해상도 · fps" value={isOnAir ? '1920×1080 · 60' : '—'} />
-              <Tile icon={Gauge} label="수신 지연" value={state === 'live' ? '2.1초' : '—'} />
-              <Tile icon={Users} label="시청자" value={viewers ? `${viewers.toLocaleString()}명` : '—'} />
-              <Tile icon={Clock} label="방송 시간" value={isOnAir ? fmtTime(elapsed) : '—'} />
+              <Tile icon={Radio} label="상태" value={STATE_META[state].label} tone={STATE_META[state].tone} hint={STATUS_DEFS['상태']} />
+              <Tile icon={Activity} label="비트레이트" value={isOnAir ? `${curBitrate.toLocaleString()} kbps` : '—'} hint={STATUS_DEFS['비트레이트']}
+                sub={state === 'live' ? (quality === 'good' ? '권장 범위' : quality === 'fair' ? '권장보다 낮음' : '불안정') : undefined}
+                subTone={quality === 'good' ? 'emerald' : quality === 'fair' ? 'amber' : 'red'} />
+              <Tile icon={Monitor} label="해상도 · fps" value={isOnAir ? '1920×1080 · 60' : '—'} hint={STATUS_DEFS['해상도 · fps']} />
+              <Tile icon={Gauge} label="수신 지연" value={state === 'live' ? `${delaySec.toFixed(1)}초` : '—'} hint={STATUS_DEFS['수신 지연']}
+                sub={state === 'live' ? (delaySec < 2.5 ? '권장 범위' : delaySec < 4 ? '다소 높음' : '높음') : undefined}
+                subTone={delaySec < 2.5 ? 'emerald' : delaySec < 4 ? 'amber' : 'red'} />
+              <Tile icon={Users} label="시청자" value={isOnAir ? `${viewers.toLocaleString()}명` : '—'} hint={STATUS_DEFS['시청자']} />
+              <Tile icon={Clock} label="방송 시간" value={isOnAir ? fmtTime(elapsed) : '—'} hint={STATUS_DEFS['방송 시간']} />
             </div>
             {/* 비트레이트 히스토리 */}
             <div className="mt-4">
@@ -308,8 +441,14 @@ export default function BroadcastSettingsPage() {
                     ) : <span className="bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">오프라인</span>}
                   </div>
                   <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">TOON</span>
-                  <span className="absolute bottom-2 left-2 bg-black/50 text-white/90 text-[10px] px-1.5 py-0.5 rounded">{form.category}</span>
-                  {form.age === 'restricted' && <span className="absolute bottom-2 right-2 bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">19</span>}
+                  {/* 방송숨김이면 미리보기 자체가 "목록에 없다"는 걸 보여준다 */}
+                  {form.hidden && (
+                    <div className="absolute inset-x-0 bottom-0 bg-slate-900/85 text-white text-[10.5px] px-2.5 py-1.5 flex items-center gap-1.5">
+                      <EyeOff size={11} /> 라이브 목록 미노출 · 즐겨찾기 알림 없음 (테스트 송출)
+                    </div>
+                  )}
+                  <span className={`absolute left-2 bg-black/50 text-white/90 text-[10px] px-1.5 py-0.5 rounded ${form.hidden ? 'bottom-9' : 'bottom-2'}`}>{form.category}</span>
+                  {form.age === 'restricted' && <span className={`absolute right-2 bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded ${form.hidden ? 'bottom-9' : 'bottom-2'}`}>19</span>}
                 </div>
                 <div className="flex items-start gap-2.5 mt-3">
                   <div className="w-9 h-9 rounded-full bg-slate-900 text-white shrink-0 flex items-center justify-center text-xs font-bold">YM</div>
@@ -357,7 +496,9 @@ export default function BroadcastSettingsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setReissueOpen(false)}>
           <div className="bg-white dark:bg-[#181a20] rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-3"><div className="p-2 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-500"><AlertTriangle size={20} /></div><h3 className="text-lg font-bold text-slate-900 dark:text-white">스트림키를 재발급할까요?</h3></div>
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">재발급하면 <b>기존 키가 즉시 무효화</b>됩니다. 송출 프로그램에 새 스트림키를 다시 입력해야 다음 방송을 할 수 있어요.</p>
+            {/* 파괴적 액션 앞에 복구 경로 먼저 (#15 · YouTube 패턴) — 첫 문장은 경고가 아니라 "그래도 방송할 수 있다" */}
+            <p className="text-sm text-slate-800 dark:text-slate-100 leading-relaxed"><b>새 스트림키는 바로 발급되며</b>, 송출 프로그램에 다시 입력하면 그대로 방송할 수 있습니다.</p>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">대신 <b>기존 키는 즉시 무효화</b>됩니다. 이미 내려받은 OBS 프로필이 있다면 새 키로 다시 내려받아 주세요.</p>
             <div className="flex justify-end gap-2 mt-6">
               <button onClick={() => setReissueOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">취소</button>
               <button onClick={reissue} className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-red-500 hover:bg-red-600">재발급</button>
@@ -374,7 +515,11 @@ const STATE_META: Record<StreamState, { label: string; tone: 'slate' | 'amber' |
   offline: { label: '오프라인', tone: 'slate' }, preparing: { label: '준비 중', tone: 'amber' }, live: { label: '라이브', tone: 'red' }, suspended: { label: '일시중단', tone: 'amber' },
 };
 
-function StatusHero({ state, elapsed, viewers, bitrate, reconnectLeft, onOpenChannel, onGuide, setState }: { state: StreamState; elapsed: string; viewers: number; bitrate: number; reconnectLeft: number; onOpenChannel: () => void; onGuide: () => void; setState: (s: StreamState) => void }) {
+function StatusHero({ state, elapsed, viewers, bitrate, reconnectLeft, quality, onOpenChannel, onGuide, onDiagnose, setState, netDemo, setNetDemo }: {
+  state: StreamState; elapsed: string; viewers: number; bitrate: number; reconnectLeft: number; quality: Quality;
+  onOpenChannel: () => void; onGuide: () => void; onDiagnose: () => void; setState: (s: StreamState) => void;
+  netDemo: 'good' | 'fair' | 'bad'; setNetDemo: (q: 'good' | 'fair' | 'bad') => void;
+}) {
   const cfg = {
     offline: { ring: 'from-slate-200 to-slate-100 dark:from-slate-800 dark:to-slate-800/40', dot: 'bg-slate-400', title: '송출 신호 대기 중', sub: '송출 프로그램에서 방송을 시작하면 자동으로 라이브가 됩니다. 별도의 시작 버튼은 없어요.' },
     preparing: { ring: 'from-amber-100 to-amber-50 dark:from-amber-900/30 dark:to-amber-900/10', dot: 'bg-amber-500 animate-pulse', title: '신호 수신 · 준비 중', sub: '첫 영상이 만들어지는 중입니다. 잠시 후 라이브 목록에 노출돼요.' },
@@ -402,7 +547,12 @@ function StatusHero({ state, elapsed, viewers, bitrate, reconnectLeft, onOpenCha
               <div className="flex items-center gap-4 mt-3 text-sm">
                 <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200"><Users size={14} /> <b className="tabular-nums">{viewers.toLocaleString()}</b>명 시청</span>
                 <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200"><Activity size={14} /> <b className="tabular-nums">{bitrate.toLocaleString()}</b> kbps</span>
-                <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold"><Check size={14} /> 정상</span>
+                {/* 연결 상태 칩 (#13) — 문제가 있으면 눌러서 송출 상태로 이동 (#14 · 상태 배지 → 진단 딥링크) */}
+                <button onClick={onDiagnose} title={`${QUALITY_META[quality].desc} 송출 상태로 이동합니다.`}
+                  className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-xs font-bold transition-colors hover:brightness-95 ${QUALITY_META[quality].cls}`}>
+                  {quality === 'good' ? <Check size={13} /> : <AlertTriangle size={13} />} 연결 {QUALITY_META[quality].label}
+                  {quality !== 'good' && <span className="opacity-70 font-medium">· 진단 보기 →</span>}
+                </button>
               </div>
             )}
           </div>
@@ -419,6 +569,14 @@ function StatusHero({ state, elapsed, viewers, bitrate, reconnectLeft, onOpenCha
         {(['offline', 'preparing', 'live', 'suspended'] as StreamState[]).map((s) => (
           <button key={s} onClick={() => setState(s)} className={`px-2 py-0.5 rounded transition-colors ${state === s ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-900 font-bold' : 'hover:bg-black/5 dark:hover:bg-white/10'}`}>{STATE_META[s].label}</button>
         ))}
+        {state === 'live' && (
+          <>
+            <span className="mx-1 text-slate-300 dark:text-slate-600">|</span> 회선:
+            {(['good', 'fair', 'bad'] as const).map((q) => (
+              <button key={q} onClick={() => setNetDemo(q)} className={`px-2 py-0.5 rounded transition-colors ${netDemo === q ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-900 font-bold' : 'hover:bg-black/5 dark:hover:bg-white/10'}`}>{QUALITY_META[q].label}</button>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
@@ -469,13 +627,19 @@ function Segmented({ value, onChange, options }: { value: string; onChange: (v: 
     </div>
   );
 }
-function Tile({ icon: Icon, label, value, sub, tone }: { icon: any; label: string; value: string; sub?: string; tone?: 'slate' | 'amber' | 'red' | 'emerald' }) {
+function Tile({ icon: Icon, label, value, sub, tone, hint, subTone = 'emerald' }: { icon: any; label: string; value: string; sub?: string; tone?: 'slate' | 'amber' | 'red' | 'emerald'; hint?: string; subTone?: 'emerald' | 'amber' | 'red' }) {
   const toneCls = tone === 'red' ? 'text-red-500' : tone === 'amber' ? 'text-amber-500' : tone === 'emerald' ? 'text-emerald-500' : tone === 'slate' ? 'text-slate-400' : 'text-slate-900 dark:text-white';
+  const subCls = { emerald: 'text-emerald-600 dark:text-emerald-400', amber: 'text-amber-600 dark:text-amber-400', red: 'text-red-600 dark:text-red-400' }[subTone];
   return (
-    <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3">
-      <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-1"><Icon size={13} /> {label}</div>
+    <div className="group relative bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3">
+      <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-1">
+        <Icon size={13} /> {label}
+        {/* 지표 ⓘ 1줄 정의 (#17) — 집계 기준까지 밝힌다 */}
+        {hint && <span title={hint} className="ml-auto cursor-help text-slate-300 dark:text-slate-600 group-hover:text-slate-500"><Info size={12} /></span>}
+      </div>
       <div className={`text-base font-bold tabular-nums ${toneCls}`}>{value}</div>
-      {sub && <div className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5">{sub}</div>}
+      {sub && <div className={`text-[11px] mt-0.5 ${subCls}`}>{sub}</div>}
+      {hint && <div className="absolute left-2 right-2 top-full z-20 mt-1 hidden group-hover:block bg-slate-900 text-white text-[11px] leading-relaxed rounded-lg px-2.5 py-2 shadow-xl">{hint}</div>}
     </div>
   );
 }
