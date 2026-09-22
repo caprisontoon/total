@@ -2,12 +2,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings, RectangleHorizontal,
-  MessageSquare, MessageSquareOff, Smile, Send, Flag, Ban, Star, Crown, Users, Wifi, WifiOff,
+  MessageSquare, MessageSquareOff, Flag, Star, Crown, Users, Wifi, WifiOff,
   Info, ChevronLeft, Share2, Lock, Check, Gauge, Zap, Activity, X, Bell, ExternalLink, Heart,
   PictureInPicture2, Headphones,
 } from 'lucide-react';
 import ViewerShell from './ViewerShell';
 import { LIVES, getLive, formatViewers, formatElapsed, type LiveStatus } from './liveData';
+import LiveChat from './viewerchat/LiveChat';
 
 // 채널 페이지 (시청) — ⑦-7-4 · 7-5. 자체 플레이어 + 채팅 + 그리드 설치 안내.
 // 1단계 정책: 후원은 시청 화면 안이 아니라 기존 후원 페이지로 이동한다.
@@ -18,17 +19,6 @@ const QUALITY_LABEL: Record<Quality, string> = { auto: '자동 (ABR)', '1080p': 
 // 그리드 미설치 시 화질 상한 — 정책 미결(부록 B-5)이라 임시값. 720p 이상은 설치 필요.
 const GRID_FREE_MAX_INDEX = QUALITIES.indexOf('480p');
 const needsGrid = (q: Quality) => q !== 'auto' && QUALITIES.indexOf(q) < GRID_FREE_MAX_INDEX;
-
-const EMOJIS = ['😀', '😂', '🔥', '👏', '❤️', '😮', '🎉', '👍', '😭', '🙏'];
-type Msg = { id: number; user: string; text: string; color: string; badge?: string; mine?: boolean };
-const SEED_CHAT: Msg[] = [
-  { id: 1, user: '유저A', text: 'ㅋㅋㅋㅋ 오늘 텐션 미쳤다', color: '#38bdf8' },
-  { id: 2, user: '유저B', text: '오늘도 화이팅!! 🔥', color: '#34d399', badge: '실버' },
-  { id: 3, user: '유저C', text: '목표까지 얼마 남았어요?', color: '#fbbf24', badge: 'VIP' },
-  { id: 4, user: '유저D', text: '대박 ㄷㄷ 👏👏', color: '#e879f9', badge: '골드' },
-  { id: 5, user: '유저E', text: '방금 들어왔는데 뭐하는 중이에요?', color: '#38bdf8' },
-  { id: 6, user: '유저F', text: 'ㅇㅈㅇㅈ', color: '#34d399', badge: '실버' },
-];
 
 export default function ChannelPage() {
   const { channelId } = useParams();
@@ -99,22 +89,10 @@ function Channel({ liveId }: { liveId: string }) {
     setQuality(q); setQualityOpen(false);
   };
 
-  // 채팅
+  // 채팅 — 패널 내부 상태는 viewerchat/LiveChat이 들고 있다
   const [chatVisible, setChatVisible] = useState(true);
-  const [msgs, setMsgs] = useState<Msg[]>(SEED_CHAT);
-  const [blocked, setBlocked] = useState<Set<string>>(new Set());
-  const [input, setInput] = useState('');
-  const [emojiOpen, setEmojiOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ block: 'end' }); }, [msgs]);
   const showToast = (t: string) => { setToast(t); setTimeout(() => setToast(null), 1800); };
-  const send = () => {
-    const t = input.trim(); if (!t) return;
-    setMsgs((m) => [...m, { id: Date.now(), user: '김종윤', text: t, color: '#60a5fa', badge: '블랙 다이아', mine: true }]);
-    setInput(''); setEmojiOpen(false);
-  };
-  const visibleMsgs = msgs.filter((m) => !blocked.has(m.user));
 
   const [fav, setFav] = useState(true);
   const others = LIVES.filter((l) => l.id !== live.id && l.status === 'live').slice(0, 4);
@@ -358,59 +336,23 @@ function Channel({ liveId }: { liveId: string }) {
 
           {/* ===== 우측: 채팅 ===== */}
           {chatVisible && (
-            <aside className={`w-full lg:w-[340px] shrink-0 flex flex-col border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1a1d24] ${theater ? 'h-screen border-y-0 border-r-0' : 'rounded-xl mt-4 lg:mt-0 h-[520px] lg:h-auto lg:max-h-[calc(100vh-140px)] lg:sticky lg:top-0'}`}>
-              <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-200 dark:border-slate-800">
-                <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-100"><MessageSquare size={15} /> 채팅 <span className="text-xs text-slate-400 font-medium tabular-nums">{formatViewers(live.viewers)}</span></div>
-                <div className="flex items-center gap-1">
-                  <button title="채팅 창 분리 (준비 중)" disabled className="p-1.5 rounded text-slate-300 cursor-not-allowed"><ExternalLink size={14} /></button>
-                  <button title="채팅 숨기기" onClick={() => setChatVisible(false)} className="p-1.5 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"><MessageSquareOff size={15} /></button>
-                </div>
-              </div>
-
+            <aside className={`w-full lg:w-[340px] shrink-0 flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1a1d24] ${theater ? 'h-screen border-y-0 border-r-0' : 'rounded-xl mt-4 lg:mt-0 h-[620px] lg:h-[calc(100vh-140px)] lg:sticky lg:top-0'}`}>
               {!isToon ? (
-                <div className="flex-1 flex items-center justify-center p-6 text-center text-sm text-slate-500">
-                  <div>
-                    <ExternalLink size={24} className="mx-auto mb-2 opacity-50" />
-                    외부 방송의 채팅은 <b>{live.platform}</b>에서 제공됩니다.
-                    <button className="block mx-auto mt-3 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700">{live.platform}에서 채팅 열기</button>
-                  </div>
-                </div>
-              ) : (
                 <>
-                  {status === 'suspended' && <div className="px-3 py-1.5 text-[11px] bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-b border-amber-100 dark:border-amber-900/30">연결이 끊긴 동안에도 채팅은 계속 이용할 수 있어요</div>}
-                  {!online && <div className="px-3 py-1.5 text-[11px] bg-slate-50 dark:bg-slate-800/60 text-slate-500 border-b border-slate-100 dark:border-slate-800">방송이 시작되면 채팅이 활성화됩니다</div>}
-                  <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-                    {visibleMsgs.map((m) => (
-                      <div key={m.id} className="group/msg relative flex items-start gap-1.5 text-[13px] leading-snug rounded px-1.5 py-1 hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                        <div className="min-w-0 flex-1">
-                          {m.badge && <span className="text-[10px] font-bold mr-1 px-1 py-px rounded" style={{ color: m.color, background: `${m.color}22` }}>{m.badge}</span>}
-                          <b style={{ color: m.color }}>{m.user}</b>
-                          <span className="text-slate-400 mx-1">·</span>
-                          <span className="text-slate-800 dark:text-slate-200 break-words">{m.text}</span>
-                        </div>
-                        {!m.mine && (
-                          <div className="absolute right-1 top-0.5 hidden group-hover/msg:flex items-center gap-0.5 bg-white dark:bg-slate-800 rounded shadow-sm border border-slate-200 dark:border-slate-700">
-                            <button title="신고" onClick={() => showToast(`${m.user} 님의 메시지를 신고했습니다`)} className="p-1 text-slate-400 hover:text-red-500"><Flag size={12} /></button>
-                            <button title="차단" onClick={() => { setBlocked((b) => new Set(b).add(m.user)); showToast(`${m.user} 님을 차단했습니다`); }} className="p-1 text-slate-400 hover:text-red-500"><Ban size={12} /></button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    <div ref={chatEndRef} />
+                  <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-100"><MessageSquare size={15} /> 채팅 <span className="text-xs text-slate-400 font-medium tabular-nums">{formatViewers(live.viewers)}</span></div>
+                    <button title="채팅 숨기기" onClick={() => setChatVisible(false)} className="p-1.5 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"><MessageSquareOff size={15} /></button>
                   </div>
-                  <div className="border-t border-slate-200 dark:border-slate-800 p-2">
-                    {emojiOpen && (
-                      <div className="grid grid-cols-10 gap-1 mb-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800">
-                        {EMOJIS.map((e) => <button key={e} onClick={() => setInput((v) => v + e)} className="text-lg hover:scale-125 transition-transform">{e}</button>)}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1.5">
-                      <button title="이모티콘" onClick={() => setEmojiOpen(!emojiOpen)} className={`p-2 rounded-lg ${emojiOpen ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'text-slate-400 hover:text-slate-700 dark:hover:text-white'}`}><Smile size={18} /></button>
-                      <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') send(); }} disabled={!online} placeholder={online ? '채팅을 입력하세요' : '방송 중에만 채팅할 수 있어요'} className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full px-3.5 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" />
-                      <button onClick={send} disabled={!online || !input.trim()} className="p-2 rounded-lg text-white bg-blue-500 hover:bg-blue-600 disabled:opacity-40"><Send size={16} /></button>
+                  <div className="flex-1 flex items-center justify-center p-6 text-center text-sm text-slate-500">
+                    <div>
+                      <ExternalLink size={24} className="mx-auto mb-2 opacity-50" />
+                      외부 방송의 채팅은 <b>{live.platform}</b>에서 제공됩니다.
+                      <button className="block mx-auto mt-3 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700">{live.platform}에서 채팅 열기</button>
                     </div>
                   </div>
                 </>
+              ) : (
+                <LiveChat onHide={() => setChatVisible(false)} />
               )}
             </aside>
           )}
