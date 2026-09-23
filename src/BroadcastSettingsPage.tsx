@@ -73,12 +73,12 @@ const STATUS_DEFS: Record<string, string> = {
 type Form = { title: string; category: string; tags: string[]; thumb: string | null; chat: 'all' | 'follower' | 'off'; slow: number; age: 'all' | 'restricted'; hidden: boolean };
 const INITIAL_FORM: Form = { title: '', category: '토크', tags: ['엑셀방송'], thumb: null, chat: 'all', slow: 0, age: 'all', hidden: false };
 
-// mode — 'manage'(방송 관리: 방송 중 관제 · 방송 정보 · 송출 상태 · 채팅) / 'settings'(방송 설정: 송출 연결 · 채팅 · 시청 옵션)
+// mode — 'manage'(방송 관리: 방송 중 관제 · 방송 정보 · 채팅 · 시청 옵션 · 송출 상태 · 채팅 패널) / 'settings'(방송 설정: 송출 프로그램 연결)
 // 두 메뉴가 같은 상태 모델을 쓰므로 한 컴포넌트가 섹션만 골라 보여준다.
 type PageMode = 'manage' | 'settings';
 const MODE_FIELDS: Record<PageMode, (keyof Form)[]> = {
-  manage: ['title', 'category', 'tags', 'thumb'],
-  settings: ['chat', 'slow', 'age', 'hidden'],
+  manage: ['title', 'category', 'tags', 'thumb', 'chat', 'slow', 'age', 'hidden'],
+  settings: [], // 방송 설정은 송출 연결만 — 폼 저장 대상이 없다
 };
 
 export default function BroadcastSettingsPage({ mode = 'manage' }: { mode?: PageMode }) {
@@ -212,7 +212,7 @@ export default function BroadcastSettingsPage({ mode = 'manage' }: { mode?: Page
             <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${state === 'live' ? 'bg-red-500 animate-pulse' : state === 'offline' ? 'bg-slate-400' : 'bg-amber-500 animate-pulse'}`} />
             <span className="text-sm font-bold text-slate-800 dark:text-slate-100">지금 {STATE_META[state].label}</span>
             <span className="text-xs text-slate-500 truncate">
-              {isOnAir ? '방송 중에는 스트림키 재발급이 잠기고, 나머지 설정은 저장 즉시 반영됩니다.' : '여기서 송출 프로그램을 연결하고 채팅 · 시청 조건을 미리 정해두세요.'}
+              {isOnAir ? '방송 중에는 스트림키 재발급이 잠깁니다. 종료 후 다시 시도하세요.' : '송출 프로그램에 서버 주소와 스트림키를 한 번만 넣어두면, 이후엔 프로그램에서 방송을 시작할 때 자동으로 라이브가 됩니다.'}
             </span>
           </div>
           <div className="sm:ml-auto flex items-center gap-2 shrink-0">
@@ -230,7 +230,7 @@ export default function BroadcastSettingsPage({ mode = 'manage' }: { mode?: Page
       {/* 섹션 내비 — 이 화면에 있는 섹션만 */}
       <div className="sticky top-0 z-20 -mx-4 lg:-mx-8 px-4 lg:px-8 py-2 mt-5 bg-gray-50/90 dark:bg-[#0f1115]/90 backdrop-blur border-b border-slate-200/60 dark:border-slate-800/60 flex items-center gap-1.5 overflow-x-auto">
         {([['connect', '연결', Link2], ['info', '방송 정보', Tv], ['options', '채팅 · 옵션', MessageSquare], ['status', '송출 상태', Activity]] as const)
-          .filter(([k]) => (mode === 'manage' ? k === 'info' || k === 'status' : k === 'connect' || k === 'options'))
+          .filter(([k]) => (mode === 'manage' ? k !== 'connect' : k === 'connect'))
           .map(([k, label, Icon]) => (
           <button key={k} onClick={() => jump(k)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm whitespace-nowrap transition-all">
             <Icon size={14} /> {label}
@@ -376,9 +376,9 @@ export default function BroadcastSettingsPage({ mode = 'manage' }: { mode?: Page
           </Card>
 
           </>)}
-          {mode === 'settings' && (<>
+          {mode === 'manage' && (<>
           {/* ── 3. 채팅 · 옵션 ── */}
-          <Card ref={secRefs.options} step="2" title="채팅 · 시청 옵션" desc="채팅 운영 방식과 시청 조건의 기본값을 정합니다. 방송 중 급한 조정은 방송 관리의 채팅 패널 '채널 조치'에서 하세요.">
+          <Card ref={secRefs.options} step="2" title="채팅 · 시청 옵션" desc="채팅 참여 · 슬로우의 기본값과 시청 조건입니다. 방송 중 즉시 조정은 우측 채팅 패널의 '채널 조치'에서도 할 수 있어요.">
             <div className="space-y-5">
               <Field label="채팅 참여">
                 <Segmented value={form.chat} onChange={(v) => set('chat', v as Form['chat'])} options={[['all', '전체'], ['follower', '팔로워만'], ['off', '사용 안 함']]} />
@@ -414,7 +414,7 @@ export default function BroadcastSettingsPage({ mode = 'manage' }: { mode?: Page
           </>)}
           {mode === 'manage' && (<>
           {/* ── 4. 송출 상태 ── */}
-          <Card ref={secRefs.status} step="2" title="송출 상태" desc="서버가 실제로 수신한 값입니다. 송출 프로그램이 보여주는 수치와 다를 수 있어요.">
+          <Card ref={secRefs.status} step="3" title="송출 상태" desc="서버가 실제로 수신한 값입니다. 송출 프로그램이 보여주는 수치와 다를 수 있어요.">
             {/* 연결 상태 판정 (#13) — 수치는 그대로 두고 판정을 함께 준다 */}
             <div className={`mb-4 flex items-start gap-3 rounded-xl border px-4 py-3 ${QUALITY_META[quality].cls}`}>
               <Wifi size={16} className="mt-0.5 shrink-0" />
