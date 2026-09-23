@@ -168,8 +168,8 @@ export default function DashboardPage() {
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   // 메인 콘텐츠 페이지는 URL에서 결정 (state가 아니므로 새로고침해도 유지됨)
   //  - /dashboard             → 통합 알림창
-  //  - /broadcast-manage      → 라이브 방송 > 방송 관리 (방송 중 관제: 상태 · 방송 정보 · 송출 상태 · 채팅)
-  //  - /broadcast-settings    → 라이브 방송 > 방송 설정 (사전 설정: 송출 연결 · 채팅 · 시청 옵션)
+  //  - /broadcast-manage      → 라이브 방송 > 방송 관리 (방송 정보 · 채팅 · 시청 옵션 · 송출 상태 · 채팅 패널)
+  //  - /broadcast-settings    → 라이브 방송 > 방송 설정 (송출 프로그램 연결)
   //  - /broadcast-analytics   → 라이브 방송 > 방송 분석
   const location = useLocation();
   const activePage: 'alerts' | 'manage' | 'broadcast' | 'analytics' =
