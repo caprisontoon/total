@@ -73,7 +73,15 @@ const STATUS_DEFS: Record<string, string> = {
 type Form = { title: string; category: string; tags: string[]; thumb: string | null; chat: 'all' | 'follower' | 'off'; slow: number; age: 'all' | 'restricted'; hidden: boolean };
 const INITIAL_FORM: Form = { title: '', category: '토크', tags: ['엑셀방송'], thumb: null, chat: 'all', slow: 0, age: 'all', hidden: false };
 
-export default function BroadcastSettingsPage() {
+// mode — 'manage'(방송 관리: 방송 중 관제 · 방송 정보 · 송출 상태 · 채팅) / 'settings'(방송 설정: 송출 연결 · 채팅 · 시청 옵션)
+// 두 메뉴가 같은 상태 모델을 쓰므로 한 컴포넌트가 섹션만 골라 보여준다.
+type PageMode = 'manage' | 'settings';
+const MODE_FIELDS: Record<PageMode, (keyof Form)[]> = {
+  manage: ['title', 'category', 'tags', 'thumb'],
+  settings: ['chat', 'slow', 'age', 'hidden'],
+};
+
+export default function BroadcastSettingsPage({ mode = 'manage' }: { mode?: PageMode }) {
   const navigate = useNavigate();
 
   // ── 송출 상태 (데모 전환 포함) ──
@@ -143,7 +151,7 @@ export default function BroadcastSettingsPage() {
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [tagInput, setTagInput] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
-  const dirtyCount = useMemo(() => (Object.keys(form) as (keyof Form)[]).filter((k) => JSON.stringify(form[k]) !== JSON.stringify(saved[k])).length, [form, saved]);
+  const dirtyCount = useMemo(() => MODE_FIELDS[mode].filter((k) => JSON.stringify(form[k]) !== JSON.stringify(saved[k])).length, [form, saved, mode]);
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
   const save = () => { setSaved(form); setLastSavedAt(new Date()); toast(isOnAir ? '저장됨 · 방송 중이라 즉시 반영됩니다' : '저장됨 · 다음 방송에도 유지됩니다'); };
   const revert = () => setForm(saved);
@@ -179,7 +187,7 @@ export default function BroadcastSettingsPage() {
   const popupRef = useRef<Window | null>(null);
   const [poppedOut, setPoppedOut] = useState(false);
   const popoutChat = () => {
-    const url = `/broadcast-settings/chat?channel=ym&status=${state}`;
+    const url = `/broadcast-manage/chat?channel=ym&status=${state}`;
     const w = window.open(url, 'toonCreatorChat', 'width=440,height=820,resizable=yes');
     if (!w) { toast('팝업이 차단되었어요. 브라우저에서 팝업을 허용한 뒤 다시 시도해 주세요.'); return; }
     popupRef.current = w; setPoppedOut(true);
@@ -193,14 +201,37 @@ export default function BroadcastSettingsPage() {
 
   return (
     <div className="max-w-[1400px] mx-auto">
-      {/* ═══════════ 상태 히어로 ═══════════ */}
-      <StatusHero state={state} elapsed={fmtTime(elapsed)} viewers={viewers} bitrate={curBitrate} reconnectLeft={reconnectLeft} quality={quality}
-        onOpenChannel={() => navigate('/live/ym')} onGuide={() => { setGuideOpen(true); jump('connect'); }} onDiagnose={() => jump('status')}
-        setState={setState} netDemo={netDemo} setNetDemo={setNetDemo} />
+      {/* ═══════════ 상태 — 방송 관리는 히어로, 방송 설정은 한 줄 스트립 ═══════════ */}
+      {mode === 'manage' ? (
+        <StatusHero state={state} elapsed={fmtTime(elapsed)} viewers={viewers} bitrate={curBitrate} reconnectLeft={reconnectLeft} quality={quality}
+          onOpenChannel={() => navigate('/live/ym')} onGuide={() => navigate('/broadcast-settings')} onDiagnose={() => jump('status')}
+          setState={setState} netDemo={netDemo} setNetDemo={setNetDemo} />
+      ) : (
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181a20] px-5 py-3.5 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${state === 'live' ? 'bg-red-500 animate-pulse' : state === 'offline' ? 'bg-slate-400' : 'bg-amber-500 animate-pulse'}`} />
+            <span className="text-sm font-bold text-slate-800 dark:text-slate-100">지금 {STATE_META[state].label}</span>
+            <span className="text-xs text-slate-500 truncate">
+              {isOnAir ? '방송 중에는 스트림키 재발급이 잠기고, 나머지 설정은 저장 즉시 반영됩니다.' : '여기서 송출 프로그램을 연결하고 채팅 · 시청 조건을 미리 정해두세요.'}
+            </span>
+          </div>
+          <div className="sm:ml-auto flex items-center gap-2 shrink-0">
+            <span className="hidden md:flex items-center gap-1 text-[11px] text-slate-400">
+              <span className="px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 font-bold">데모</span>
+              {(['offline', 'live'] as StreamState[]).map((st) => (
+                <button key={st} onClick={() => setState(st)} className={`px-2 py-0.5 rounded ${state === st ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-900 font-bold' : 'hover:bg-black/5 dark:hover:bg-white/10'}`}>{STATE_META[st].label}</button>
+              ))}
+            </span>
+            <button onClick={() => navigate('/broadcast-manage')} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700"><Radio size={14} /> 방송 관리 열기 <ExternalLink size={12} className="text-slate-400" /></button>
+          </div>
+        </div>
+      )}
 
-      {/* 섹션 내비 */}
+      {/* 섹션 내비 — 이 화면에 있는 섹션만 */}
       <div className="sticky top-0 z-20 -mx-4 lg:-mx-8 px-4 lg:px-8 py-2 mt-5 bg-gray-50/90 dark:bg-[#0f1115]/90 backdrop-blur border-b border-slate-200/60 dark:border-slate-800/60 flex items-center gap-1.5 overflow-x-auto">
-        {([['connect', '연결', Link2], ['info', '방송 정보', Tv], ['options', '채팅 · 옵션', MessageSquare], ['status', '송출 상태', Activity]] as const).map(([k, label, Icon]) => (
+        {([['connect', '연결', Link2], ['info', '방송 정보', Tv], ['options', '채팅 · 옵션', MessageSquare], ['status', '송출 상태', Activity]] as const)
+          .filter(([k]) => (mode === 'manage' ? k === 'info' || k === 'status' : k === 'connect' || k === 'options'))
+          .map(([k, label, Icon]) => (
           <button key={k} onClick={() => jump(k)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm whitespace-nowrap transition-all">
             <Icon size={14} /> {label}
           </button>
@@ -208,10 +239,11 @@ export default function BroadcastSettingsPage() {
         <div className="ml-auto text-xs text-slate-400 whitespace-nowrap hidden sm:block">{lastSavedAt ? `마지막 저장 ${lastSavedAt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}` : '저장된 변경 없음'}</div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
+      <div className={mode === 'manage' ? 'mt-6 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start' : 'mt-6 grid grid-cols-1 gap-6 items-start max-w-[920px]'}>
         {/* ═══════════ 좌측: 설정 흐름 ═══════════ */}
         <div className="space-y-6 min-w-0">
 
+          {mode === 'settings' && (<>
           {/* ── 1. 연결 ── */}
           <Card ref={secRefs.connect} step="1" title="송출 프로그램 연결" desc="서버 주소와 스트림키를 송출 프로그램에 한 번만 입력하면, 이후엔 프로그램에서 방송을 시작할 때 자동으로 라이브가 됩니다.">
             {/* 프로그램 선택 */}
@@ -302,8 +334,10 @@ export default function BroadcastSettingsPage() {
             </div>
           </Card>
 
+          </>)}
+          {mode === 'manage' && (<>
           {/* ── 2. 방송 정보 ── */}
-          <Card ref={secRefs.info} step="2" title="방송 정보" desc="라이브 목록과 채널 페이지에 표시됩니다. 방송 중에도 바꿀 수 있고, 저장하면 즉시 반영돼요." badge={isOnAir ? '방송 중 변경 가능' : undefined}>
+          <Card ref={secRefs.info} step="1" title="방송 정보" desc="라이브 목록과 채널 페이지에 표시됩니다. 방송 중에도 바꿀 수 있고, 저장하면 즉시 반영돼요." badge={isOnAir ? '방송 중 변경 가능' : undefined}>
             <div className="space-y-5">
               <Field label="제목" right={<span className={`text-xs tabular-nums ${form.title.length > MAX_TITLE ? 'text-red-500' : 'text-slate-400'}`}>{form.title.length}/{MAX_TITLE}</span>}>
                 <input value={form.title} onChange={(e) => set('title', e.target.value.slice(0, MAX_TITLE))} placeholder={`미입력 시 채널명(${CHANNEL_NAME})으로 표시됩니다`} className={inputCls} />
@@ -341,8 +375,10 @@ export default function BroadcastSettingsPage() {
             </div>
           </Card>
 
+          </>)}
+          {mode === 'settings' && (<>
           {/* ── 3. 채팅 · 옵션 ── */}
-          <Card ref={secRefs.options} step="3" title="채팅 · 시청 옵션" desc="채팅 운영 방식과 시청 조건을 정합니다.">
+          <Card ref={secRefs.options} step="2" title="채팅 · 시청 옵션" desc="채팅 운영 방식과 시청 조건의 기본값을 정합니다. 방송 중 급한 조정은 방송 관리의 채팅 패널 '채널 조치'에서 하세요.">
             <div className="space-y-5">
               <Field label="채팅 참여">
                 <Segmented value={form.chat} onChange={(v) => set('chat', v as Form['chat'])} options={[['all', '전체'], ['follower', '팔로워만'], ['off', '사용 안 함']]} />
@@ -375,8 +411,10 @@ export default function BroadcastSettingsPage() {
             </div>
           </Card>
 
+          </>)}
+          {mode === 'manage' && (<>
           {/* ── 4. 송출 상태 ── */}
-          <Card ref={secRefs.status} step="4" title="송출 상태" desc="서버가 실제로 수신한 값입니다. 송출 프로그램이 보여주는 수치와 다를 수 있어요.">
+          <Card ref={secRefs.status} step="2" title="송출 상태" desc="서버가 실제로 수신한 값입니다. 송출 프로그램이 보여주는 수치와 다를 수 있어요.">
             {/* 연결 상태 판정 (#13) — 수치는 그대로 두고 판정을 함께 준다 */}
             <div className={`mb-4 flex items-start gap-3 rounded-xl border px-4 py-3 ${QUALITY_META[quality].cls}`}>
               <Wifi size={16} className="mt-0.5 shrink-0" />
@@ -416,6 +454,8 @@ export default function BroadcastSettingsPage() {
             <p className="mt-3 flex items-start gap-1.5 text-xs text-slate-500"><Info size={13} className="mt-px shrink-0" /> 드랍 프레임 · CPU 부하는 송출 프로그램(OBS 등) 측 지표라 여기서는 수집되지 않습니다. 해당 값은 프로그램의 통계 창에서 확인하세요.</p>
           </Card>
 
+          </>)}
+
           {/* 저장 바 (더티일 때만) */}
           {dirtyCount > 0 && (
             <div className="sticky bottom-4 z-20 flex items-center justify-between gap-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-5 py-3.5 shadow-2xl">
@@ -428,7 +468,8 @@ export default function BroadcastSettingsPage() {
           )}
         </div>
 
-        {/* ═══════════ 우측: 실시간 채팅 + 시청자 시점 미리보기 ═══════════ */}
+        {/* ═══════════ 우측: 실시간 채팅 + 시청자 시점 미리보기 (방송 관리에만) ═══════════ */}
+        {mode === 'manage' && (
         <aside className="flex flex-col gap-4 min-h-0 xl:sticky xl:top-14 xl:h-[calc(100vh-10.5rem)]">
           {/* 미리보기 — 방송 중엔 접혀서 채팅에 공간을 준다 */}
           <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181a20] shadow-sm overflow-hidden shrink-0">
@@ -494,6 +535,7 @@ export default function BroadcastSettingsPage() {
             )}
           </div>
         </aside>
+        )}
       </div>
 
       {/* 토스트 */}
