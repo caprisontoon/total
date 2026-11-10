@@ -171,9 +171,11 @@ export default function DashboardPage() {
   //  - /broadcast-manage      → 라이브 방송 > 방송 관리 (방송 정보 · 채팅 · 시청 옵션 · 송출 상태 · 채팅 패널)
   //  - /broadcast-settings    → 라이브 방송 > 방송 설정 (송출 프로그램 연결)
   //  - /broadcast-analytics   → 라이브 방송 > 방송 분석
+  //  - /chat-widget(.html)    → 위젯 관리 > 채팅 위젯
   const location = useLocation();
-  const activePage: 'alerts' | 'manage' | 'broadcast' | 'analytics' =
-    location.pathname.startsWith('/broadcast-analytics') ? 'analytics'
+  const activePage: 'alerts' | 'manage' | 'broadcast' | 'analytics' | 'chatwidget' =
+    location.pathname.startsWith('/chat-widget') ? 'chatwidget'
+    : location.pathname.startsWith('/broadcast-analytics') ? 'analytics'
     : location.pathname.startsWith('/broadcast-manage') ? 'manage'
     : location.pathname.startsWith('/broadcast-settings') ? 'broadcast' : 'alerts';
 
@@ -333,8 +335,11 @@ export default function DashboardPage() {
                 <SidebarMenuItem label="통합 알림창" isSubItem active={activePage === 'alerts'} onClick={() => navigate('/dashboard')} />
               </div>
               <SidebarMenuItem label="위젯" isSubItem />
-              {/* 채팅창 위젯 업그레이드 테스트 페이지 (public/chat-widget.html) */}
-              <SidebarMenuItem label="채팅창 위젯" isSubItem onClick={() => window.location.href = '/chat-widget.html'} />
+              {/* 채팅 위젯 설정 — 대시보드 셸 안에 public/chat-widget-app.html 을 띄운다 */}
+              <div className="relative">
+                {activePage === 'chatwidget' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full"></div>}
+                <SidebarMenuItem label="채팅 위젯" isSubItem active={activePage === 'chatwidget'} onClick={() => navigate('/chat-widget.html')} />
+              </div>
               <SidebarMenuItem label="크루 스튜디오" isSubItem onClick={() => window.location.href = 'https://excel-eosin-sigma.vercel.app/'} />
               <SidebarMenuItem label="간편설정" isSubItem />
             </div>
@@ -391,7 +396,7 @@ export default function DashboardPage() {
              >
                <Menu size={20} />
              </button>
-             <h1 className="text-lg lg:text-xl font-bold text-slate-800 dark:text-white">{activePage === 'manage' ? '방송 관리' : activePage === 'broadcast' ? '방송 설정' : activePage === 'analytics' ? '방송 분석' : '통합알림창'}</h1>
+             <h1 className="text-lg lg:text-xl font-bold text-slate-800 dark:text-white">{activePage === 'manage' ? '방송 관리' : activePage === 'broadcast' ? '방송 설정' : activePage === 'analytics' ? '방송 분석' : activePage === 'chatwidget' ? '채팅 위젯' : '통합알림창'}</h1>
              {/* 방송 관리자 페이지 — 라이브 방송 화면(방송 관리 · 방송 설정 · 방송 분석)에서만 노출 */}
              {(activePage === 'manage' || activePage === 'broadcast' || activePage === 'analytics') && (
                <button
@@ -448,6 +453,17 @@ export default function DashboardPage() {
            </div>
         </header>
 
+        {activePage === 'chatwidget' ? (
+          /* 채팅 위젯 설정 화면은 독립 HTML(설정 · 테스트 탭 + 400px 고정 미리보기)이라 콘텐츠 영역을 꽉 채운 iframe으로 띄운다.
+             iframe 안에서 스크롤되므로 오른쪽 미리보기가 sticky로 고정된다. */
+          <div className="relative flex-1 min-h-0 bg-gray-50 dark:bg-[#0f1115]">
+            <iframe
+              src="/chat-widget-app.html?embed=1"
+              title="채팅 위젯 설정"
+              className="absolute inset-0 w-full h-full border-0"
+            />
+          </div>
+        ) : (
         <div className="relative flex-1 overflow-y-auto p-4 lg:p-8">
           {activePage === 'manage' && <BroadcastSettingsPage mode="manage" />}
           {activePage === 'broadcast' && <BroadcastSettingsPage mode="settings" />}
@@ -740,6 +756,7 @@ export default function DashboardPage() {
           </div>
           )}
         </div>
+        )}
       </main>
       {/* Group Management Modal */}
       {isGroupModalOpen && (

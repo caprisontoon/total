@@ -20,6 +20,9 @@ export default function App() {
         <Route path="/broadcast-manage" element={<DashboardPage />} />
         <Route path="/broadcast-settings" element={<DashboardPage />} />
         <Route path="/broadcast-analytics" element={<DashboardPage />} />
+        {/* 위젯 관리 > 채팅 위젯 — 대시보드 셸 안에 채팅 위젯 설정(public/chat-widget-app.html)을 띄운다 */}
+        <Route path="/chat-widget" element={<DashboardPage />} />
+        <Route path="/chat-widget.html" element={<DashboardPage />} />
         {/* 방송 관리 채팅을 별도 창으로 분리한 팝업 (옛 경로도 유지) */}
         <Route path="/broadcast-manage/chat" element={<ChatPopupPage />} />
         <Route path="/broadcast-settings/chat" element={<ChatPopupPage />} />

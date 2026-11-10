@@ -4,6 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>html,body{margin:0}</style>
+<script>
+/* 대시보드(/chat-widget.html) 안에 iframe으로 들어가면 embed 모드: 자체 상단바를 숨기고 대시보드 셸이 제목/메뉴를 맡는다 */
+(function(){
+  var embed = true;
+  try{ embed = window.self !== window.top || /[?&]embed=1/.test(location.search); }catch(e){}
+  if (!embed) return;
+  var r = document.documentElement;
+  r.classList.add('embed');
+  // 대시보드 셸은 라이트 테마 고정(.dark 클래스 전략)이라 OS 다크모드를 따르지 않도록 맞춘다
+  r.setAttribute('data-theme', 'light');
+})();
+</script>
 <title>통합 채팅 위젯 테스트</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -198,6 +210,12 @@ input[type=color]{width:36px; height:32px; padding:0; border:1px solid var(--lin
 .sep-label{font-size:11.5px; color:var(--muted)}
 .stage.mini{height:auto; min-height:60px; max-height:none; padding:12px; display:flex; flex-direction:column; justify-content:center; border-radius:10px}
 .prev-foot{padding:10px 14px 14px}
+
+/* embed mode (대시보드 콘텐츠 영역 안): 상단바 숨김, 배경을 대시보드 회색(gray-50)에 맞춤 */
+.embed .topbar{display:none}
+:root.embed{--bg:#f9fafb}
+.embed .app{padding-block:20px 32px}
+.embed .stage{height:calc(100vh - 170px)}
 
 /* ============ chat widget (rendered inside stage) ============ */
 .cw-scope{--ff:'Noto Sans KR'; --fs:20px; --fw:700; --sw:2px; --sc:#000; --boxbg:rgba(0,0,0,.45); --rad:8px; --gap:6px; --spd:.25s; --wfs:16px}
@@ -405,8 +423,8 @@ input[type=color]{width:36px; height:32px; padding:0; border:1px solid var(--lin
 
       <!-- 1. 스타일 -->
       <section class="card acc">
-        <button type="button" class="acc-h" aria-expanded="true"><span class="t">스타일<span class="sub">위젯 스타일, 채팅 박스</span></span><i class="chev" aria-hidden="true"></i></button>
-        <div class="acc-b">
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">스타일<span class="sub">위젯 스타일, 채팅 박스</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b" hidden>
           <div class="row top"><span class="lbl">위젯 스타일</span>
             <div class="ctl"><div class="theme-grid" id="themeGrid"></div><p class="hint">스타일을 바꾸면 박스, 글자색, 외곽선, 채팅 간격이 그 스타일의 기본값으로 바뀝니다.</p></div></div>
           <div class="row"><span class="lbl">채팅 박스</span><div><div class="seg" data-k="box.mode" data-opts="box:배경 있음|text:채팅만"></div></div></div>
