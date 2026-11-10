@@ -1,0 +1,1552 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>html,body{margin:0}</style>
+<title>통합 채팅 위젯 테스트</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+KR:wght@400;700;900&family=Nanum+Gothic:wght@400;800&family=Do+Hyeon&family=Jua&family=Gowun+Dodum&family=Black+Han+Sans&display=swap">
+<style>
+/* Layout: Toonation-style settings column (설정/테스트 tabs, accordion cards) + fixed 400px live preview on the right */
+:root{
+  --bg:#f3f5f9; --panel:#ffffff; --panel-2:#f5f7fb; --line:#e1e5ee; --fg:#151b28; --muted:#5b6579;
+  --accent:#3b7bff; --accent-fg:#ffffff; --accent-weak:#e7efff; --ok:#12924f; --warn:#b86e00; --bad:#d6334a;
+  --toggle-off:#cfd5e0; --mask:#aab1bd; --chip:#1f2430; --chip-fg:#ffffff;
+  --code-bg:#0f1420; --code-fg:#d7def0; --code-key:#7fb2ff; --code-str:#9fe0a8; --code-num:#ffc078;
+  --ui:'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  --mono:'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0e121a; --panel:#151a24; --panel-2:#1b2130; --line:#283044; --fg:#e7ebf3; --muted:#98a2b7;
+  --accent:#5d8dff; --accent-fg:#0b1020; --accent-weak:#1c2846; --ok:#3ccf83; --warn:#f0a63a; --bad:#ff6b7f;
+  --toggle-off:#3a4358; --mask:#3a4255; --chip:#e7ebf3; --chip-fg:#151a24; --code-bg:#0a0e16; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0e121a; --panel:#151a24; --panel-2:#1b2130; --line:#283044; --fg:#e7ebf3; --muted:#98a2b7;
+  --accent:#5d8dff; --accent-fg:#0b1020; --accent-weak:#1c2846; --ok:#3ccf83; --warn:#f0a63a; --bad:#ff6b7f;
+  --toggle-off:#3a4358; --mask:#3a4255; --chip:#e7ebf3; --chip-fg:#151a24; --code-bg:#0a0e16; color-scheme:dark }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg); color:var(--fg); font-family:var(--ui); font-size:14px; line-height:1.5}
+button,input,select,textarea{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+.topbar{display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;
+  padding-block:14px; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px));
+  border-bottom:1px solid var(--line); background:var(--panel)}
+.brand{display:flex; gap:12px; align-items:center; min-width:0}
+.logo{width:36px; height:36px; border-radius:10px; background:var(--accent); color:var(--accent-fg); display:grid; place-items:center; font-weight:700}
+.brand h1{margin:0; font-size:18px; font-weight:700; text-wrap:balance}
+.brand p{margin:0; color:var(--muted); font-size:12.5px}
+.top-actions{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.pill{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; background:var(--panel-2); border:1px solid var(--line); font-size:12.5px; font-variant-numeric:tabular-nums}
+.dot{width:8px; height:8px; border-radius:50%; background:var(--muted)}
+.dot.live{background:var(--ok)}
+
+/* page grid: settings | 400px preview */
+.app{display:grid; grid-template-columns:minmax(0,1fr) 402px; gap:20px; align-items:start; max-width:1320px; margin:0 auto;
+  padding-block:18px 28px; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px))}
+.main{min-width:0; display:flex; flex-direction:column; gap:14px}
+.preview{position:sticky; top:12px; width:402px; min-width:0}
+@media (max-width:920px){ .app{grid-template-columns:minmax(0,1fr)} .preview{position:static; order:-1; width:100%; max-width:402px; justify-self:center} }
+
+.page-tabs{display:flex; gap:4px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:5px; width:fit-content; max-width:100%}
+.page-tabs button{border:0; background:none; padding:8px 26px; border-radius:8px; font-weight:600; color:var(--muted); cursor:pointer; font-size:14px}
+.page-tabs button[aria-selected="true"]{background:var(--accent); color:var(--accent-fg)}
+.pane{display:flex; flex-direction:column; gap:12px}
+.card{background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:0 1px 2px rgba(20,30,60,.04)}
+
+/* url card (mirrors the live widget page) */
+.url-card{padding:18px 20px; display:flex; flex-direction:column; gap:10px}
+.url-row{display:flex; gap:8px; flex-wrap:wrap}
+.url-mask{flex:1 1 220px; min-width:0; border:0; border-radius:8px; background:var(--mask); color:#fff; font-weight:700; padding:9px 12px; cursor:pointer}
+
+/* accordion */
+.acc-h{width:100%; display:flex; align-items:center; gap:8px; padding:18px 22px; border:0; background:none; cursor:pointer; text-align:left; font-size:15px; font-weight:700; color:var(--fg)}
+.acc-h .t{flex:1; min-width:0; display:flex; align-items:center; flex-wrap:wrap; gap:4px 8px}
+.acc-h .sub{font-weight:500; font-size:12.5px; color:var(--muted)}
+.acc-h .core{font-size:10.5px; padding:1px 6px; border-radius:6px; background:var(--accent); color:var(--accent-fg); font-weight:700}
+.chev{width:9px; height:9px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(45deg); transition:transform .2s; flex:0 0 auto; opacity:.6; margin-right:4px}
+.acc-h[aria-expanded="true"] .chev{transform:rotate(-135deg)}
+.acc-b{border-top:1px solid var(--line); padding:6px 22px 18px; display:flex; flex-direction:column}
+.row{display:grid; grid-template-columns:170px minmax(0,1fr); gap:14px; align-items:center; padding:11px 0; min-height:54px}
+.row.top{align-items:start}
+.row > .lbl{font-size:13.5px; color:var(--muted)}
+.row.top > .lbl{padding-top:4px}
+.ctl{min-width:0; display:flex; flex-direction:column; gap:8px}
+.sub-h{font-size:13px; font-weight:700; margin:10px 0 0; padding-top:14px; border-top:1px solid var(--line)}
+@media (max-width:600px){ .row{grid-template-columns:minmax(0,1fr); gap:6px} .acc-h{padding:16px} .acc-b{padding:4px 16px 16px} }
+
+/* controls */
+.stack{display:flex; flex-direction:column; gap:8px}
+.inline{display:flex; gap:8px 10px; align-items:center; flex-wrap:wrap}
+.tgl{position:relative; display:inline-block; width:38px; height:22px; flex:0 0 auto}
+.tgl input{position:absolute; inset:0; width:100%; height:100%; opacity:0; margin:0; cursor:pointer; z-index:1}
+.tgl span{position:absolute; inset:0; border-radius:999px; background:var(--toggle-off); transition:background .15s}
+.tgl span::after{content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25); transition:transform .15s}
+.tgl input:checked + span{background:var(--accent)}
+.tgl input:checked + span::after{transform:translateX(16px)}
+.tgl input:focus-visible + span{outline:2px solid var(--accent); outline-offset:2px}
+.tgl-wrap{display:inline-flex; align-items:center; gap:10px; font-size:13px; color:var(--muted)}
+.seg{display:inline-flex; flex-wrap:wrap; gap:4px}
+.seg button{border:1px solid var(--line); background:var(--panel); padding:5px 11px; border-radius:7px; font-size:12.5px; cursor:pointer; color:var(--fg)}
+.seg button[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:var(--accent-fg); font-weight:600}
+.btn{border:1px solid var(--line); background:var(--panel); padding:7px 13px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; color:var(--fg)}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-fg)}
+.btn.soft{background:var(--accent-weak); border-color:transparent; color:var(--accent)}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:4px 9px; font-size:12px}
+.divider{border:0; border-top:1px solid var(--line); margin:10px 0; width:100%}
+.link{border:0; background:none; padding:0; color:var(--accent); font-weight:600; font-size:13px; cursor:pointer; text-decoration:underline; text-underline-offset:3px}
+.inp{width:100%; min-width:0; border:1px solid var(--line); background:var(--panel-2); border-radius:8px; padding:8px 11px; font-size:13px}
+select.inp{width:auto; min-width:120px; max-width:100%}
+textarea.inp{resize:vertical; min-height:64px}
+.unit{position:relative; display:flex; align-items:center; width:100%; max-width:420px}
+.unit .inp{padding-right:40px}
+.unit em{position:absolute; right:12px; font-style:normal; color:var(--muted); font-size:13px; pointer-events:none}
+.chk{display:inline-flex; gap:6px; align-items:center; cursor:pointer; font-size:13px}
+.chk input{accent-color:var(--accent); width:15px; height:15px; margin:0}
+.range{display:flex; gap:10px; align-items:center; flex:1; min-width:160px; max-width:420px}
+.range input{flex:1; min-width:0; accent-color:var(--accent)}
+.range output{min-width:62px; text-align:right; font-variant-numeric:tabular-nums; font-size:12.5px; color:var(--muted)}
+input[type=color]{width:36px; height:32px; padding:0; border:1px solid var(--line); border-radius:7px; background:none; cursor:pointer; flex:0 0 auto}
+.hint{margin:0; font-size:12.5px; color:var(--muted)}
+.note{margin:0; font-size:12.5px; padding:9px 11px; border-radius:8px; background:var(--panel-2); border:1px solid var(--line); color:var(--muted)}
+.note.warn{color:var(--warn)}
+.tag{display:inline-block; font-size:10.5px; padding:1px 6px; border-radius:6px; background:var(--panel-2); border:1px solid var(--line); color:var(--muted); font-weight:600; margin-left:6px}
+.tag.warn{color:var(--warn)}
+.pfi{display:inline-grid; place-items:center; width:18px; height:18px; border-radius:5px; font-size:11px; font-weight:700; flex:0 0 auto}
+.bdg{display:inline-flex; align-items:center; height:18px; min-width:18px; justify-content:center; padding:0 4px; border-radius:4px; font-size:10.5px; font-weight:700; line-height:1}
+.bdg i{font-style:normal; margin-left:2px; opacity:.85}
+
+/* themes */
+.theme-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:8px}
+.theme-card{border:1px solid var(--line); border-radius:10px; padding:0; overflow:hidden; background:var(--panel); cursor:pointer; text-align:left}
+.theme-card[aria-pressed="true"]{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent)}
+.theme-card .tp{height:84px; padding:8px; display:flex; flex-direction:column; gap:4px; justify-content:flex-end; background:#273041}
+.theme-card span.tn{display:block; padding:6px 9px; font-size:12.5px; font-weight:600}
+
+/* tags (숨길 닉네임, 금칙어) */
+.tags{display:flex; flex-direction:column; gap:8px; max-width:560px}
+.tags .inline input{flex:1}
+.tag-list{display:flex; flex-wrap:wrap; gap:6px}
+.tag-list:empty{display:none}
+.tg-item{display:inline-flex; align-items:center; gap:4px; background:var(--chip); color:var(--chip-fg); border-radius:999px; padding:3px 5px 3px 11px; font-size:12px; font-weight:600}
+.tg-item button{border:0; background:none; color:inherit; cursor:pointer; width:18px; height:18px; border-radius:50%; line-height:1}
+
+/* role / kind groups */
+.rg{border:1px solid var(--line); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:8px}
+.rg-h{display:flex; align-items:center; gap:7px; font-weight:700; font-size:13px}
+.rg-list{display:flex; flex-wrap:wrap; gap:6px 14px}
+.rg-list .chk{font-size:12.5px}
+.groups{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:8px}
+.ct-row{display:grid; grid-template-columns:minmax(0,180px) 44px 44px; gap:10px; align-items:center; font-size:12.5px}
+.ct-head{color:var(--muted); font-size:11.5px}
+
+/* connection */
+.conn-row{display:grid; grid-template-columns:110px minmax(0,1fr) auto; gap:8px; align-items:center; max-width:640px}
+.st{font-size:11.5px; padding:2px 8px; border-radius:999px; background:var(--panel-2); border:1px solid var(--line); color:var(--muted); white-space:nowrap}
+.st.live{color:var(--ok); border-color:currentColor}
+.st.connecting{color:var(--warn); border-color:currentColor}
+.st.error{color:var(--bad); border-color:currentColor}
+
+/* test form */
+.form-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px 12px}
+.field{display:flex; flex-direction:column; gap:4px; min-width:0}
+.field > span{font-size:12px; color:var(--muted)}
+.field select.inp{width:100%}
+.field.wide{grid-column:1 / -1}
+.scn{display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px}
+.scn button{text-align:left; border:1px solid var(--line); background:var(--panel); border-radius:9px; padding:8px 10px; cursor:pointer; color:var(--fg)}
+.scn button b{display:block; font-size:13px}
+.scn button span{display:block; font-size:11.5px; color:var(--muted)}
+.scn button:hover{border-color:var(--accent)}
+.json{margin:0; background:var(--code-bg); color:var(--code-fg); border-radius:10px; padding:12px 14px; font-family:var(--mono); font-size:11.5px; line-height:1.55; max-height:380px; overflow:auto; white-space:pre}
+.json .k{color:var(--code-key)} .json .s{color:var(--code-str)} .json .n{color:var(--code-num)} .json .b{color:#f38ba8}
+.memo{margin:0; padding-left:18px; font-size:13px; color:var(--muted); display:flex; flex-direction:column; gap:5px}
+
+/* preview */
+.prev-card{overflow:hidden}
+.prev-head{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 14px 8px}
+.prev-head b{font-size:14px}
+.prev-bar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; padding:0 14px 10px}
+.meta{font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums}
+.stage{position:relative; height:calc(100vh - 210px); min-height:440px; max-height:760px; overflow:hidden; padding:16px}
+@media (max-width:920px){ .stage{height:480px} }
+.prev-card > .cw-scope > .stage{border-block:1px solid var(--line)}
+.bg-checker{background-color:#2a2f3a; background-image:conic-gradient(#343a48 25%, #2a2f3a 0 50%, #343a48 0 75%, #2a2f3a 0); background-size:24px 24px}
+.bg-game{background:
+  radial-gradient(ellipse 40% 30% at 78% 22%, rgba(255,186,96,.55), transparent 70%),
+  radial-gradient(ellipse 60% 40% at 30% 90%, rgba(40,120,80,.65), transparent 70%),
+  linear-gradient(180deg,#1d2c50 0%,#2b4a5e 45%,#25423a 70%,#141f18 100%)}
+.bg-light{background-color:#e8ecf2; background-image:linear-gradient(135deg, rgba(0,0,0,.04) 25%, transparent 25% 50%, rgba(0,0,0,.04) 50% 75%, transparent 75%); background-size:28px 28px}
+.src{position:relative; height:100%; width:100%; display:flex; flex-direction:column; gap:var(--gap)}
+.src > :not(.src-bg){position:relative}
+.src-bg{position:absolute; inset:0; pointer-events:none; background-position:center; background-repeat:no-repeat; border-radius:4px}
+.bg-drop{width:100%; max-width:420px; aspect-ratio:32/9; border:1.5px dashed var(--line); border-radius:10px; background:var(--panel-2) center/contain no-repeat; display:grid; place-items:center; text-align:center; color:var(--muted); font-size:12.5px; padding:10px}
+.bg-drop.has{border-style:solid}
+.bg-drop.over{border-color:var(--accent); background-color:var(--accent-weak)}
+.bg-drop.has span{display:none}
+.separate{display:flex; flex-direction:column; gap:8px; padding:12px 14px 0}
+.separate:empty{display:none}
+.sep-head{font-size:12.5px; font-weight:700}
+.sep-grid{display:grid; grid-template-columns:minmax(0,1fr); gap:10px}
+.sep-item{display:flex; flex-direction:column; gap:4px; min-width:0}
+.sep-label{font-size:11.5px; color:var(--muted)}
+.stage.mini{height:auto; min-height:60px; max-height:none; padding:12px; display:flex; flex-direction:column; justify-content:center; border-radius:10px}
+.prev-foot{padding:10px 14px 14px}
+
+/* ============ chat widget (rendered inside stage) ============ */
+.cw-scope{--ff:'Noto Sans KR'; --fs:20px; --fw:700; --sw:2px; --sc:#000; --boxbg:rgba(0,0,0,.45); --rad:8px; --gap:6px; --spd:.25s; --wfs:16px}
+.cw-list{flex:1; min-height:0; display:flex; flex-direction:column; justify-content:flex-end; gap:var(--gap); overflow:hidden; padding-top:4px}
+.cw-list > .cw-msg{flex-shrink:0}
+.cw-list{padding:6px 8px 4px; margin-inline:-8px}
+#wTop, #wBottom{flex-shrink:0}
+.dir-left .cw-list{align-items:flex-start; text-align:left}
+.dir-center .cw-list{align-items:center; text-align:center}
+.dir-right .cw-list{align-items:flex-end; text-align:right}
+.fade-top .cw-list{-webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 26%); mask-image:linear-gradient(to bottom, transparent 0, #000 26%)}
+.cw-msg{font-family:var(--ff); font-size:var(--fs); font-weight:var(--fw); line-height:1.38; color:var(--mc,#fff); max-width:100%; overflow-wrap:anywhere; cursor:pointer}
+.cw-msg.cw-sel{outline:2px solid #ffd54a; outline-offset:2px}
+.box-box .cw-msg{background:var(--boxbg); border-radius:var(--rad); padding:.26em .6em}
+.outlined .cw-nick, .outlined .cw-text, .outlined .cw-w{paint-order:stroke fill; -webkit-text-stroke:var(--sw) var(--sc)}
+.cw-head{display:inline}
+.cw-nick{color:var(--nc,#fff); margin-right:.42em}
+.cw-pf, .cw-badge{display:inline-flex; align-items:center; justify-content:center; height:1.15em; min-width:1.15em; padding:0 .24em; border-radius:.26em;
+  font:700 .6em/1 var(--ui); vertical-align:.2em; margin-right:.24em; -webkit-text-stroke:0; letter-spacing:0}
+.cw-badge i{font-style:normal; margin-left:.18em; opacity:.85}
+.bs-s .cw-pf, .bs-s .cw-badge{font-size:.5em}
+.bs-l .cw-pf, .bs-l .cw-badge{font-size:.72em}
+.cw-tnb{border:1px solid rgba(255,255,255,.7); box-shadow:0 0 .4em rgba(120,160,255,.6)}
+.cw-emote{display:inline-block; font-size:1.1em; line-height:1; vertical-align:-.08em; -webkit-text-stroke:0}
+.cw-ev{display:inline-block; font:700 .7em/1.2 var(--ui); padding:.14em .5em; border-radius:.4em; background:#ffcf3f; color:#2a1d00; margin-right:.42em; vertical-align:.14em; -webkit-text-stroke:0}
+.cw-ev.sub{background:#b9a3ff; color:#1b0f3a}
+.cw-ev.tn{background:#2f6bff; color:#fff}
+.cw-ev.cw-tnchip{color:#fff}
+.cw-det{opacity:.92; margin-right:.45em}
+.cw-msg.cw-tn.tn-accent{box-shadow:inset .22em 0 0 #6f9bff}
+.box-box .cw-msg.cw-tn.tn-accent{background:linear-gradient(90deg, rgba(47,107,255,.45), var(--boxbg) 75%)}
+.box-text .cw-msg.cw-tn.tn-accent{padding-left:.6em}
+.cw-msg.cw-tn.tn-card{display:block; white-space:normal; color:#fff; background:linear-gradient(135deg, var(--gc), var(--gc2)); border:0;
+  border-radius:calc(var(--rad) + 6px); padding:.55em .85em .65em; box-shadow:0 0 0 2px rgba(255,255,255,.28) inset, 0 .2em .5em rgba(0,0,0,.3)}
+.tn-card .cw-head{display:block; font-size:.82em}
+.tn-card .cw-nick{color:#fff}
+.tn-card .cw-pf{box-shadow:0 0 0 1px rgba(255,255,255,.85)}
+.tn-card .cw-text{display:block}
+.tn-card .cw-ev.cw-tnchip{display:table; background:#fff!important; color:var(--gc)!important; font-size:.8em; margin:.3em 0 .35em}
+.tn-card .cw-det{display:block; opacity:1; font-size:1.02em; margin:0}
+.tn-card .cw-sepdot{display:none}
+.tn-card .cw-msgline{display:block; opacity:.92; font-size:.92em}
+.tn-grp-h{display:flex; align-items:center; gap:8px; font-weight:700; font-size:13px}
+.tn-grp-h i{width:10px; height:10px; border-radius:3px; display:inline-block}
+.tn-grp-h small{font-weight:500; color:var(--muted)}
+.tnq-row{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+.tnq-lbl{width:100%; font-size:11.5px; color:var(--muted); font-weight:600}
+.tnq-btn{border:1px solid var(--line); background:var(--panel); border-radius:8px; padding:4px 10px; font-size:12.5px; cursor:pointer; display:inline-flex; gap:6px; align-items:center}
+.tnq-btn i{width:8px; height:8px; border-radius:2px; display:inline-block}
+.tnq-btn:hover{border-color:var(--accent); color:var(--accent)}
+.al-oneline .cw-msg{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.al-start .cw-msg{display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:.42em; align-items:baseline}
+.al-start .cw-nick{margin-right:0}
+.al-stack .cw-head{display:block; font-size:.8em}
+.al-stack .cw-text{display:block}
+/* themes */
+.th-neon .cw-msg{border:1.5px solid var(--nc); box-shadow:0 0 .55em var(--nc), inset 0 0 .45em rgba(255,255,255,.08)}
+.th-card .cw-msg{box-shadow:0 .2em .7em rgba(0,0,0,.3)}
+.th-minimal .cw-msg{letter-spacing:.01em}
+.cw-ava, .cw-time{display:none}
+/* 카카오톡: 닉네임은 말풍선 밖, 메시지는 흰 말풍선 (스트리머는 노란 말풍선) */
+.th-kakao .cw-msg:not(.tn-card){display:block!important; width:100%; background:none!important; padding:0!important; box-shadow:none}
+.th-kakao .cw-msg:not(.tn-card) .cw-head{display:block; font-size:.72em; margin:0 0 .18em .15em}
+.th-kakao .cw-msg:not(.tn-card) .cw-text{display:inline-block; position:relative; max-width:calc(100% - .4em); margin-left:.35em; background:#ffffff; color:var(--mc); border-radius:.75em; padding:.3em .7em; -webkit-text-stroke:0; box-shadow:0 .1em .3em rgba(0,0,0,.18); text-align:left}
+.th-kakao .cw-msg:not(.tn-card) .cw-text::before{content:""; position:absolute; left:-.3em; top:.5em; border-style:solid; border-width:.32em .34em .32em 0; border-color:transparent #ffffff transparent transparent}
+.th-kakao .cw-msg.r-streamer:not(.tn-card) .cw-text{background:#fee500}
+.th-kakao .cw-msg.r-streamer:not(.tn-card) .cw-text::before{border-right-color:#fee500}
+.th-kakao.al-oneline .cw-msg .cw-text{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+/* 디스코드: 프로필 원 + 닉네임 + 메시지 */
+.th-discord .cw-msg:not(.tn-card){display:grid!important; grid-template-columns:2em minmax(0,1fr); column-gap:.6em; align-items:start; width:100%; padding:.4em .7em!important; font-weight:400}
+.th-discord .cw-msg:not(.tn-card) .cw-ava{display:grid; place-items:center; grid-row:span 2; width:2.3em; height:2.3em; border-radius:50%; background:var(--pc); color:#fff; font:700 .85em/1 var(--ui); -webkit-text-stroke:0}
+.th-discord .cw-msg:not(.tn-card) .cw-head{display:block; font-size:.92em}
+.th-discord .cw-msg .cw-nick{font-weight:600}
+.th-discord .cw-msg:not(.tn-card) .cw-text{display:block}
+/* 오버워치: 기울어진 패널 + [닉네임]: */
+.th-ow .cw-msg:not(.tn-card){position:relative; isolation:isolate; background:none!important; padding:.22em 1em .22em .75em!important; font-style:italic}
+.th-ow .cw-msg:not(.tn-card)::before{content:""; position:absolute; inset:0; z-index:-1; transform:skewX(-14deg); background:linear-gradient(90deg, rgba(14,22,40,.9), rgba(14,22,40,.45)); border-left:.28em solid #f99e1a}
+.th-ow .cw-msg .cw-nick::before{content:"["}
+.th-ow .cw-msg .cw-nick::after{content:"]:"}
+.th-ow .cw-msg .cw-nick{margin-right:.35em}
+/* 칠판: 나무 테두리의 초록 칠판 위에 분필 글씨 */
+.th-chalk .cw-list{background:#25402f; background-image:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,.07), transparent 60%); border:.4em solid #8a5a33; border-radius:8px; box-shadow:inset 0 0 1.4em rgba(0,0,0,.5), 0 .2em .6em rgba(0,0,0,.4); padding:.6em .8em; margin-inline:0}
+.th-chalk .cw-msg:not(.tn-card){font-weight:400; text-shadow:0 0 1px rgba(255,255,255,.55), 0 0 6px rgba(255,255,255,.18)}
+/* 롤: 깎인 모서리 + 금색 테두리 */
+.th-lol .cw-msg:not(.tn-card){background:linear-gradient(180deg, rgba(1,10,19,.95), var(--boxbg))!important; border:1px solid #785a28; border-radius:0!important; padding:.28em .75em!important; box-shadow:inset 0 0 .6em rgba(200,170,110,.18);
+  clip-path:polygon(.45em 0,100% 0,100% calc(100% - .45em),calc(100% - .45em) 100%,0 100%,0 .45em)}
+/* 배그: 어두운 패널 + 노란 왼쪽 바 */
+.th-pubg .cw-msg:not(.tn-card){background:var(--boxbg)!important; border-left:.24em solid #f2a900; border-radius:2px!important; padding:.24em .7em!important; text-shadow:0 1px 2px rgba(0,0,0,.6)}
+/* 크리스마스: 빨강·초록 번갈아 + 금색 테두리 + 눈송이 */
+.th-xmas .cw-msg:not(.tn-card){position:relative; background:linear-gradient(135deg,#c62828,#8e1414)!important; border:2px solid #f1d27a; border-radius:.8em!important; padding:.3em .8em!important; box-shadow:0 .15em .45em rgba(0,0,0,.3)}
+.th-xmas .cw-msg.alt:not(.tn-card){background:linear-gradient(135deg,#2e7d32,#1b5e20)!important}
+.th-xmas .cw-msg:not(.tn-card)::after{content:"❄"; position:absolute; right:.5em; top:-.55em; font-size:.75em; color:#fff; text-shadow:0 0 4px rgba(255,255,255,.8); -webkit-text-stroke:0}
+/* 표시 방향 '오른쪽': 메시지 → 닉네임 → 배지 순으로 좌우를 뒤집어 닉네임이 오른쪽 끝에 오도록 */
+.dir-right .cw-msg:not(.tn-card){display:flex; flex-direction:row-reverse; align-items:baseline; column-gap:.42em; text-align:right}
+.dir-right .cw-msg .cw-head{display:inline-flex; flex-direction:row-reverse; align-items:baseline; flex:0 0 auto; white-space:nowrap}
+.dir-right .cw-msg .cw-nick{margin-right:0}
+.dir-right .cw-pf, .dir-right .cw-badge{margin-right:0; margin-left:.24em}
+.dir-right .cw-msg:not(.tn-card) .cw-text{min-width:0; flex:0 1 auto}
+.dir-right .cw-ev{margin-right:0; margin-left:.42em}
+.al-oneline.dir-right .cw-msg .cw-text{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.al-stack.dir-right .cw-msg:not(.tn-card){flex-direction:column; align-items:flex-end}
+.al-start.dir-right .cw-msg:not(.tn-card){display:grid; grid-template-columns:minmax(0,1fr) auto}
+.al-start.dir-right .cw-msg .cw-head{order:2}
+/* 후원 카드는 오른쪽에 붙기만 하고 카드 안 구성은 그대로 */
+.dir-right .cw-msg.tn-card{text-align:left}
+.dir-right .cw-msg.tn-card .cw-head{display:block; white-space:normal}
+.dir-right .cw-msg.tn-card .cw-nick{margin-right:.42em}
+.dir-right .cw-msg.tn-card .cw-pf, .dir-right .cw-msg.tn-card .cw-badge{margin-left:0; margin-right:.24em}
+.th-kakao.dir-right .cw-msg:not(.tn-card) .cw-text{margin-left:0; margin-right:.35em}
+.th-kakao.dir-right .cw-msg:not(.tn-card) .cw-text::before{left:auto; right:-.3em; border-width:.32em 0 .32em .34em; border-color:transparent transparent transparent #ffffff}
+.th-kakao.dir-right .cw-msg.r-streamer:not(.tn-card) .cw-text::before{border-left-color:#fee500}
+.th-kakao.dir-right .cw-msg:not(.tn-card) .cw-head{display:flex; justify-content:flex-start}
+.th-discord.dir-right .cw-msg:not(.tn-card){grid-template-columns:minmax(0,1fr) 2em}
+.th-discord.dir-right .cw-msg:not(.tn-card) .cw-ava{grid-column:2; grid-row:1 / span 2}
+.th-discord.dir-right .cw-msg:not(.tn-card) .cw-head, .th-discord.dir-right .cw-msg:not(.tn-card) .cw-text{grid-column:1; text-align:right}
+.th-discord.dir-right .cw-msg:not(.tn-card) .cw-head{display:flex; justify-content:flex-start}
+.th-ow.dir-right .cw-msg .cw-nick::after{content:"]"}
+.th-ow.dir-right .cw-msg .cw-nick{margin-right:0}
+/* 닉네임 구분선 ':' ('한 줄' 정렬에서만) */
+.colon .cw-msg .cw-nick{margin-right:0}
+.colon .cw-msg .cw-head::after{content:":"; margin:0 .4em 0 .08em; color:var(--mc,#fff)}
+.outlined.colon .cw-msg .cw-head::after{paint-order:stroke fill; -webkit-text-stroke:var(--sw) var(--sc)}
+.dir-right.colon .cw-msg .cw-head::after{margin:0 .3em 0 0}
+.colon .cw-msg.tn-card .cw-head::after, .th-kakao.colon .cw-head::after, .th-discord.colon .cw-head::after, .th-ow.colon .cw-head::after{content:none}
+.colon .cw-msg.tn-card .cw-nick, .th-kakao.colon .cw-nick, .th-discord.colon .cw-nick{margin-right:.42em}
+.th-ow.colon .cw-msg .cw-nick{margin-right:.35em}
+.dir-right .cw-msg.cw-tn.tn-accent{box-shadow:inset -.22em 0 0 #6f9bff}
+.dir-right.box-box .cw-msg.cw-tn.tn-accent{background:linear-gradient(270deg, rgba(47,107,255,.45), var(--boxbg) 75%)}
+.dir-right.box-text .cw-msg.cw-tn.tn-accent{padding-left:0; padding-right:.6em}
+/* toonation donation card */
+.cw-msg.cw-tncard{display:block; white-space:normal; color:#fff; background:linear-gradient(135deg, rgba(47,107,255,.95), rgba(123,77,255,.95)); border-radius:calc(var(--rad) + 4px); padding:.5em .75em; border:0; box-shadow:0 0 0 2px rgba(255,255,255,.35) inset, 0 .3em 1em rgba(47,107,255,.4)}
+.cw-tncard .cw-head{display:block}
+.cw-tncard .cw-text{display:block}
+.cw-tncard .cw-ev.tn{display:block; width:fit-content; background:#fff; color:#2443c8; font-size:.82em; margin:.2em 0 .3em}
+.cw-msg.cw-pinned{outline:2px solid rgba(255,212,74,.95); outline-offset:1px}
+.cw-pinlabel{display:inline-block; font:700 .6em/1.2 var(--ui); background:#ffd44a; color:#2a1d00; border-radius:.3em; padding:.1em .4em; margin-right:.4em; vertical-align:.2em; -webkit-text-stroke:0}
+/* widgets */
+.cw-w{font-family:var(--ff); font-weight:var(--fw); font-size:var(--wfs); color:#fff; background:rgba(8,12,24,.72); border-radius:var(--rad); padding:.35em .7em; display:flex; align-items:center; gap:.6em; flex-wrap:wrap; max-width:100%}
+.cw-wl{font:700 .7em/1 var(--ui); padding:.25em .5em; border-radius:.35em; background:rgba(255,255,255,.16); -webkit-text-stroke:0}
+.cw-viewers b, .cw-timer .cw-tval{font-variant-numeric:tabular-nums}
+.cw-vc{display:inline-flex; align-items:center; gap:.3em}
+.cw-vc .cw-pf{margin:0; vertical-align:0}
+.cw-vt{margin-left:auto}
+.cw-notice{flex-wrap:nowrap}
+.cw-notice .cw-ntext{min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; flex:1}
+.ns-accent .cw-notice{background:linear-gradient(90deg,#2f6bff,#6a5cff)}
+.ns-ticker .cw-notice .cw-ntext{text-overflow:clip}
+.ns-ticker .cw-notice .cw-ntext span{display:inline-block; padding-left:100%; animation:cwTicker 12s linear infinite}
+.cw-timer{justify-content:space-between}
+.cw-timer .cw-tval{font-size:1.25em}
+.cw-timer.done .cw-tval{color:#ff6b7f; animation:cwBlink 1s steps(2) infinite}
+/* motion */
+.fx-fade .cw-enter{animation:cwFade var(--spd) ease-out}
+.fx-slide .cw-enter{animation:cwSlide var(--spd) ease-out}
+.fx-slide.dir-right .cw-enter{animation-name:cwSlideR}
+.fx-up .cw-enter{animation:cwUp var(--spd) ease-out}
+.fx-pop .cw-enter{animation:cwPop var(--spd) cubic-bezier(.2,1.4,.4,1)}
+.cw-out{opacity:0; transform:translateY(-.4em); transition:opacity .4s, transform .4s}
+@keyframes cwFade{from{opacity:0}}
+@keyframes cwSlide{from{opacity:0; transform:translateX(-1.4em)}}
+@keyframes cwSlideR{from{opacity:0; transform:translateX(1.4em)}}
+@keyframes cwUp{from{opacity:0; transform:translateY(.9em)}}
+@keyframes cwPop{from{opacity:0; transform:scale(.8)}}
+@keyframes cwTicker{to{transform:translateX(-100%)}}
+@keyframes cwBlink{50%{opacity:.3}}
+@media (prefers-reduced-motion: reduce){ .cw-enter{animation:none!important} .ns-ticker .cw-notice .cw-ntext span{animation:none; padding-left:0} .cw-timer.done .cw-tval{animation:none} }
+</style>
+<style id="customCss"></style>
+
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">TN</span>
+    <div>
+      <h1>채팅창 위젯 설정</h1>
+      <p>투네이션 채팅 위젯 업그레이드 · 기획 검증용 프로토타입 (목업 데이터)</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <a class="btn sm" href="/dashboard">대시보드로 돌아가기</a>
+    <span class="pill"><span class="dot" id="connDot"></span><span id="connText">연결 안 됨</span></span>
+    <button type="button" class="btn sm danger" id="resetBtn">설정 초기화</button>
+  </div>
+</header>
+
+<main class="app">
+  <div class="main">
+    <nav class="page-tabs" role="tablist" id="tabs" aria-label="페이지 메뉴">
+      <button type="button" role="tab" data-tab="settings" aria-selected="true">설정</button>
+      <button type="button" role="tab" data-tab="test" aria-selected="false">테스트</button>
+    </nav>
+
+    <!-- ===================== 설정 ===================== -->
+    <section class="pane" data-pane="settings">
+      <div class="card url-card">
+        <select class="inp" id="urlSel" aria-label="채팅 URL 종류" style="width:100%"><option>통합 채팅 URL</option><option>시청자수 전용 URL</option><option>방송 시간 전용 URL</option></select>
+        <div class="url-row">
+          <button type="button" class="url-mask" id="urlMask">클릭하여 URL 확인</button>
+          <button type="button" class="btn soft" id="urlCopy">URL 복사</button>
+          <button type="button" class="btn primary" id="urlOpen">열기</button>
+        </div>
+        <p class="hint" id="urlMsg" hidden>프로토타입이라 실제 URL은 발급되지 않아요.</p>
+      </div>
+
+      <!-- 1. 스타일 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="true"><span class="t">스타일<span class="sub">위젯 스타일, 채팅 박스</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b">
+          <div class="row top"><span class="lbl">위젯 스타일</span>
+            <div class="ctl"><div class="theme-grid" id="themeGrid"></div><p class="hint">스타일을 바꾸면 박스, 글자색, 외곽선, 채팅 간격이 그 스타일의 기본값으로 바뀝니다.</p></div></div>
+          <div class="row"><span class="lbl">채팅 박스</span><div><div class="seg" data-k="box.mode" data-opts="box:배경 있음|text:채팅만"></div></div></div>
+          <div class="row" data-show="box.mode=box"><span class="lbl">박스 색</span>
+            <div class="inline"><input type="color" data-k="box.color" aria-label="박스 배경색"><div class="range"><input type="range" data-k="box.alpha" min="0" max="100" aria-label="박스 불투명도"><output data-o="box.alpha" data-suf="%"></output></div></div></div>
+          <div class="row" data-show="box.mode=box"><span class="lbl">박스 모서리</span>
+            <div class="range"><input type="range" data-k="box.radius" min="0" max="24" aria-label="박스 모서리"><output data-o="box.radius" data-suf="px"></output></div></div>
+          <div class="sub-h">채팅창 배경</div>
+          <div class="row top"><span class="lbl">배경 이미지</span>
+            <div class="ctl">
+              <div class="bg-drop" id="bgDrop"><span>이미지가 없어요.<br>파일을 여기로 끌어다 놓거나 '파일 선택'을 눌러 주세요.</span></div>
+              <div class="inline">
+                <label class="btn primary" for="bgFile" style="cursor:pointer">파일 선택</label>
+                <input type="file" id="bgFile" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+                <button type="button" class="btn danger" id="bgRemove">이미지 삭제</button>
+                <span class="hint" id="bgMsg">PNG, JPG, WEBP, GIF</span>
+              </div>
+            </div></div>
+          <div class="row"><span class="lbl">이미지 채우기</span><div><div class="seg" data-k="bg.fit" data-opts="cover:꽉 채우기|contain:비율 유지|repeat:바둑판"></div></div></div>
+          <div class="row"><span class="lbl">이미지 불투명도</span>
+            <div class="range"><input type="range" data-k="bg.opacity" min="10" max="100" step="5" aria-label="배경 이미지 불투명도"><output data-o="bg.opacity" data-suf="%"></output></div></div>
+        </div>
+      </section>
+
+      <!-- 2. 폰트 설정 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">폰트 설정<span class="sub">글꼴, 외곽선, 닉네임·채팅 색</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b" hidden>
+          <div class="row"><span class="lbl">글꼴</span>
+            <div class="inline">
+              <select class="inp" data-k="font.family" aria-label="글꼴">
+                <option value="Noto Sans KR">본고딕</option><option value="Nanum Gothic">나눔고딕</option><option value="Do Hyeon">도현</option><option value="Jua">주아</option>
+                <option value="Gowun Dodum">고운돋움</option><option value="Black Han Sans">검은고딕</option><option value="IBM Plex Sans KR">IBM Plex Sans KR</option>
+              </select>
+              <div class="unit" style="width:110px"><input class="inp" type="number" data-k="font.size" min="12" max="40" aria-label="글자 크기"><em>px</em></div>
+              <span class="tgl-wrap"><label class="tgl"><input type="checkbox" data-k="font.bold" aria-label="굵게"><span></span></label>굵게</span>
+            </div></div>
+          <div class="row"><span class="lbl">글자 외곽선</span>
+            <div class="inline">
+              <label class="tgl"><input type="checkbox" data-k="font.outline" aria-label="외곽선 사용"><span></span></label>
+              <input type="color" data-k="font.outlineColor" aria-label="외곽선 색" data-show="font.outline=true">
+              <div class="range" data-show="font.outline=true"><input type="range" data-k="font.outlineWidth" min="0.5" max="6" step="0.5" aria-label="외곽선 두께"><output data-o="font.outlineWidth" data-suf="px"></output></div>
+            </div></div>
+          <div class="sub-h">색상</div>
+          <div class="row"><span class="lbl">닉네임 색</span>
+            <div class="ctl">
+              <div class="inline"><div class="seg" data-k="colors.nickMode" data-opts="role:등급별|platform:플랫폼 설정색|random:랜덤|single:단일색"></div>
+                <input type="color" data-k="colors.single" aria-label="닉네임 단일색" data-show="colors.nickMode=single"></div>
+              <p class="hint" data-show="colors.nickMode=platform">시청자가 플랫폼에서 정한 색(트위치, 치지직, KICK)을 그대로 씁니다. 색 정보가 없는 유튜브는 등급별 색으로 대신합니다.</p>
+            </div></div>
+          <div class="row top"><span class="lbl">등급별 색</span>
+            <div class="ctl">
+              <div class="ct-row ct-head"><span>등급</span><span>닉네임</span><span>채팅</span></div>
+              <div class="stack" id="colorTable"></div>
+              <p class="hint">닉네임 색은 '등급별'일 때 적용되고, 채팅 색은 항상 적용됩니다. 등급이 여러 개면 스트리머 → 매니저 → 투네이션 VIP → 플랫폼 VIP·멤버십 → 구독자 순으로 정합니다.</p>
+            </div></div>
+          <div class="row"><span class="lbl">투네이션 등급 색 우선</span>
+            <div><label class="tgl"><input type="checkbox" data-k="colors.tnPriority" aria-label="투네이션 등급 색을 플랫폼 등급보다 우선"><span></span></label></div></div>
+          <div class="row"><span class="lbl">일괄 적용</span>
+            <div class="inline">
+              <button type="button" class="btn sm" data-bulk="nick-white">흰색 닉네임</button>
+              <button type="button" class="btn sm" data-bulk="nick-black">검정 닉네임</button>
+              <button type="button" class="btn sm" data-bulk="msg-white">흰색 채팅</button>
+              <button type="button" class="btn sm" data-bulk="msg-black">검정 채팅</button>
+              <button type="button" class="btn sm" data-bulk="role-default">스타일 기본값</button>
+            </div></div>
+        </div>
+      </section>
+
+      <!-- 3. 배치·효과 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">배치·효과<span class="sub">줄 수, 정렬, 등장·감추기</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b" hidden>
+          <div class="row"><span class="lbl">채팅 최대 표시 줄</span>
+            <div class="unit"><input class="inp" type="number" data-k="layout.maxLines" min="3" max="30" aria-label="채팅 최대 표시 줄"><em>줄</em></div></div>
+          <div class="row"><span class="lbl">채팅 정렬</span><div class="ctl"><div class="seg" data-k="layout.align" data-opts="wrap:한 줄|start:시작라인 맞춤|stack:닉네임 위"></div>
+            <label class="chk" data-show="layout.align=wrap"><input type="checkbox" data-k="layout.colon">닉네임 구분선 표시 (닉네임 : 채팅)</label></div></div>
+          <div class="row"><span class="lbl">표시 방향</span><div><div class="seg" data-k="layout.dir" data-opts="left:왼쪽|center:가운데|right:오른쪽"></div></div></div>
+          <div class="row"><span class="lbl">채팅 간격</span>
+            <div class="range"><input type="range" data-k="layout.gap" min="0" max="20" aria-label="채팅 간격"><output data-o="layout.gap" data-suf="px"></output></div></div>
+          <div class="row"><span class="lbl">위쪽 채팅 흐리게</span>
+            <div><label class="tgl"><input type="checkbox" data-k="layout.fadeTop" aria-label="위쪽 채팅 흐리게"><span></span></label></div></div>
+          <div class="sub-h">효과</div>
+          <div class="row"><span class="lbl">등장 효과</span>
+            <div class="inline">
+              <select class="inp" data-k="fx.type" aria-label="등장 효과">
+                <option value="none">효과 없음</option><option value="fade">Fade In</option><option value="slide">Slide In</option><option value="up">Slide Up</option><option value="pop">Pop</option>
+              </select>
+              <div class="range"><input type="range" data-k="fx.speed" min="0.1" max="1" step="0.05" aria-label="등장 속도"><output data-o="fx.speed" data-suf="초"></output></div>
+            </div></div>
+          <div class="row"><span class="lbl">자동으로 감추기</span>
+            <div><label class="tgl"><input type="checkbox" data-k="fx.autoHide" aria-label="자동으로 감추기"><span></span></label></div></div>
+          <div class="row" data-show="fx.autoHide=true"><span class="lbl">감추기 시간</span>
+            <div class="unit"><input class="inp" type="number" data-k="fx.hideSec" min="5" max="300" aria-label="감추기 시간"><em>초</em></div></div>
+        </div>
+      </section>
+
+      <!-- 4. 채팅 아이콘 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">채팅 아이콘<span class="core">핵심</span><span class="sub">플랫폼 아이콘, 플랫폼 등급, 투네이션 후원자 등급</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b" hidden>
+          <div class="row"><span class="lbl">플랫폼 아이콘</span>
+            <div><label class="tgl"><input type="checkbox" data-k="badges.platform" aria-label="플랫폼 아이콘 표시"><span></span></label></div></div>
+          <div class="row"><span class="lbl">플랫폼 등급 배지</span>
+            <div><label class="tgl"><input type="checkbox" data-k="badges.roles" aria-label="플랫폼 등급 배지 표시"><span></span></label></div></div>
+          <div class="row"><span class="lbl">구독·멤버십 개월수</span>
+            <div><label class="tgl"><input type="checkbox" data-k="badges.months" aria-label="구독·멤버십 개월수 표시"><span></span></label></div></div>
+          <div class="row"><span class="lbl">배지 크기</span><div><div class="seg" data-k="badges.size" data-opts="s:작게|m:보통|l:크게"></div></div></div>
+          <div class="sub-h">투네이션 후원자 등급</div>
+          <div class="row"><span class="lbl">후원자 등급 배지</span>
+            <div class="inline"><label class="tgl"><input type="checkbox" data-k="badges.tn" aria-label="투네이션 후원자 등급 배지 표시"><span></span></label><span class="inline" id="tierSamples"></span></div></div>
+          <div class="row"><span class="lbl">배지 위치</span><div><div class="seg" data-k="badges.tnPos" data-opts="before:닉네임 앞|after:닉네임 뒤"></div></div></div>
+          <p class="hint">플랫폼이 달라도 같은 투네이션 후원자면 같은 등급 배지가 붙습니다(도네이터 멤버십 연동).</p>
+          <div class="sub-h">플랫폼별 등급 배지</div>
+          <div class="groups" id="roleGrid" style="margin-top:10px"></div>
+        </div>
+      </section>
+
+      <!-- 5. 채팅 필터 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">채팅 필터<span class="sub">숨길 닉네임, 봇</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b" hidden>
+          <div class="row top"><span class="lbl">숨길 닉네임</span>
+            <div class="tags" data-k="filter.nicks"><div class="inline"><input class="inp" placeholder="숨길 닉네임" aria-label="숨길 닉네임 추가"><button type="button" class="btn primary" data-add>추가</button></div><div class="tag-list"></div></div></div>
+          <div class="row"><span class="lbl">봇 자동 숨김</span>
+            <div class="tgl-wrap"><label class="tgl"><input type="checkbox" data-k="filter.bots" aria-label="알려진 봇 자동 숨김"><span></span></label>Nightbot, StreamElements 등</div></div>
+          <hr class="divider">
+          <div class="row"><span class="lbl">금칙어</span>
+            <div class="ctl"><div class="inline"><button type="button" class="link" id="wordLink">금칙어 설정 ›</button><span class="hint">후원 메시지와 채팅창에 같은 목록이 적용돼요.</span></div>
+              <p class="hint" id="wordMsg" hidden>실서비스에서는 금칙어 설정 메뉴로 이동해요. 테스트용 목업 목록은 '바보, 광고문의'이고 ♡로 바꿔 보여줘요.</p></div></div>
+        </div>
+      </section>
+
+      <!-- 6. 시청자수·방송 시간 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">시청자수·방송 시간<span class="core">핵심</span><span class="sub">채팅창 위·아래 또는 별도 URL로 표시</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b" hidden>
+          <div class="row"><span class="lbl">통합 시청자수</span><div><div class="seg" data-k="viewers.pos" data-opts="off:사용 안 함|top:위|bottom:아래|separate:별도 URL"></div></div></div>
+          <div class="row" data-show="viewers.pos=top,bottom,separate"><span class="lbl">시청자수 표시</span><div><div class="seg" data-k="viewers.mode" data-opts="total:합계만|each:플랫폼별|both:둘 다"></div></div></div>
+          <div class="sub-h">방송 시간·시계</div>
+          <div class="row"><span class="lbl">위치</span><div><div class="seg" data-k="timer.pos" data-opts="off:사용 안 함|top:위|bottom:아래|separate:별도 URL"></div></div></div>
+          <div class="row"><span class="lbl">표시 내용</span><div><div class="seg" data-k="timer.base" data-opts="none:표시 안 함|clock:현재 시간|uptime:방송 시간"></div></div></div>
+          <div class="row" data-show="timer.base=uptime"><span class="lbl">방송 시간 기준</span>
+            <div class="ctl"><div class="seg" data-k="timer.ref" data-opts="earliest:가장 먼저 시작한 플랫폼|youtube:YouTube|chear:CHEAR|kick:KICK|chzzk:치지직|twitch:Twitch"></div>
+              <p class="hint" id="uptimeInfo"></p>
+              <p class="hint">플랫폼을 지정했는데 그 플랫폼이 방송 중이 아니면 가장 먼저 시작한 플랫폼 기준으로 보여줘요.</p></div></div>
+        </div>
+      </section>
+
+      <!-- 7. 투네이션 후원 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">투네이션 후원<span class="core">핵심</span><span class="sub">채팅창에 후원 내역 표시</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b" hidden>
+          <div class="row"><span class="lbl">채팅창에 후원 표시</span>
+            <div><label class="tgl"><input type="checkbox" data-k="tn.on" aria-label="채팅창에 투네이션 후원 표시"><span></span></label></div></div>
+          <p class="note">실서비스 기본값은 '꺼짐'을 권장합니다. 통합 알림창과 함께 쓰면 같은 후원이 화면에 두 번 보이기 때문입니다. 이 테스트 페이지에서는 확인하기 쉽게 켜 두었습니다.</p>
+          <div class="row"><span class="lbl">표시 방식</span>
+            <div class="ctl"><div class="seg" data-k="tn.style" data-opts="line:한 줄|accent:강조 줄|card:카드"></div>
+              <p class="hint" data-show="tn.style=card">카드는 종류·금액, 결과, 메시지를 줄을 나눠 크게 보여줍니다. 눈에 잘 띄는 대신 채팅 여러 줄을 차지해서, 통합 알림창을 쓰지 않는 스트리머에게 맞는 옵션이에요.</p></div></div>
+          <div class="row"><span class="lbl">최소 금액</span>
+            <div class="range"><input type="range" data-k="tn.min" min="0" max="50000" step="1000" aria-label="표시할 최소 후원 금액"><output data-o="tn.min" data-suf="캐시 이상"></output></div></div>
+          <div class="row"><span class="lbl">금액 표시</span><div><label class="tgl"><input type="checkbox" data-k="tn.showAmount" aria-label="금액 표시"><span></span></label></div></div>
+          <div class="row"><span class="lbl">후원 메시지 표시</span><div><label class="tgl"><input type="checkbox" data-k="tn.showMessage" aria-label="후원 메시지 표시"><span></span></label></div></div>
+          <div class="sub-h">후원 종류별 표시 <span class="hint" style="font-weight:500">16종을 4가지 형태로 묶음 (UI 설계서 v3.3 후원 탭 기준)</span></div>
+          <p class="hint" style="margin-top:6px">한 줄 구조: [투네이션 아이콘][후원자 등급] 닉네임 [종류 · 금액] 선택 항목 · 메시지. 종류 칩 색으로 형태를 구분합니다.</p>
+          <div class="groups" id="tnKinds" style="margin-top:10px"></div>
+        </div>
+      </section>
+
+      <!-- 8. 고급 설정 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">고급 설정<span class="sub">커스텀 CSS</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b" hidden>
+          <div class="row top"><span class="lbl">커스텀 CSS</span>
+            <div class="ctl">
+              <textarea class="inp" data-k="customCss" rows="5" spellcheck="false" placeholder=".cw-msg { letter-spacing: .02em }" aria-label="커스텀 CSS"></textarea>
+              <p class="hint">사용 가능한 클래스: .cw-msg .cw-nick .cw-text .cw-badge .cw-pf .cw-w .cw-tn</p>
+            </div></div>
+        </div>
+      </section>
+    </section>
+
+    <!-- ===================== 테스트 ===================== -->
+    <section class="pane" data-pane="test" hidden>
+      <!-- 목업 연결 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="true"><span class="t">플랫폼 연결<span class="sub">목업 채팅 재생</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b">
+          <div class="row"><span class="lbl">데이터</span><div><div class="seg" data-k="conn.mode" data-opts="mock:목업 재생|live:실제 방송"></div></div></div>
+          <p class="note warn" data-show="conn.mode=live">이 프로토타입은 목업만 재생합니다. 실제 연결은 개발팀 테스트 페이지(chat-integration) 기준으로 붙입니다.</p>
+          <div class="stack" id="connRows" style="padding-block:6px"></div>
+          <div class="inline" style="padding-block:6px">
+            <button type="button" class="btn primary" id="connectBtn">연결</button>
+            <button type="button" class="btn" id="disconnectBtn">끊기</button>
+            <button type="button" class="btn" id="reconnectBtn">채팅 재연결</button>
+            <button type="button" class="btn" id="clearBtn">채팅 비우기</button>
+          </div>
+          <div class="row"><span class="lbl">목업 속도</span>
+            <div class="range"><input type="range" data-k="conn.rate" min="0.3" max="5" step="0.1" aria-label="목업 채팅 속도"><output data-o="conn.rate" data-suf="개/초"></output></div></div>
+        </div>
+      </section>
+
+      <!-- 테스트 채팅 넣기 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="true"><span class="t">테스트 채팅 넣기</span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b">
+          <div class="stack" style="padding-top:10px; gap:12px">
+            <div class="form-grid">
+              <label class="field"><span>플랫폼</span><select class="inp" id="tPlatform"></select></label>
+              <label class="field"><span>종류</span><select class="inp" id="tKind"></select></label>
+              <label class="field" id="tAmountWrap" hidden><span id="tAmountLbl">후원 금액 (캐시)</span><input class="inp" type="number" id="tAmount" value="5000" min="100" step="100"></label>
+            </div>
+            <div class="form-grid" id="tDetail" hidden></div>
+            <div class="field"><span>등급</span><div class="rg-list" id="tRoles"></div></div>
+            <div class="form-grid">
+              <label class="field"><span>구독 개월</span><input class="inp" type="number" id="tMonths" min="0" max="120" value="6"></label>
+              <label class="field"><span>투네이션 등급</span><select class="inp" id="tTier"><option value="">없음</option><option>VIP</option><option>VVIP</option><option>SVIP</option></select></label>
+              <label class="field"><span>닉네임</span><input class="inp" id="tNick" value="테스터"></label>
+              <div class="field"><span>닉네임 색</span><div class="inline"><input type="color" id="tColor" value="#55d6be" aria-label="닉네임 색"><label class="chk"><input type="checkbox" id="tNoColor" checked>없음</label></div></div>
+            </div>
+            <label class="field" id="tTextWrap"><span>메시지 (:heart: :clap: :lol: :fire: :cry: 이모티콘)</span><textarea class="inp" id="tText" rows="2">안녕하세요 :heart:</textarea></label>
+            <p class="note" id="tMsgNote" hidden>이 후원은 설계서상 메시지 입력칸이 없어서 메시지 없이 들어가요.</p>
+            <div class="inline"><button type="button" class="btn primary" id="tSend">넣기</button><span class="hint">Ctrl + Enter</span></div>
+            <p class="note warn" id="tWarn" hidden></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 후원별 테스트 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="true"><span class="t">후원별 테스트<span class="sub">투네이션 후원 16종</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b">
+          <div class="stack" style="padding-top:10px">
+            <p class="hint">버튼을 누르면 그 후원이 바로 들어가고, 위 '테스트 채팅 넣기'에 해당 후원의 상세 항목이 열립니다. 값을 바꿔서 '넣기'로 다시 확인할 수 있어요.</p>
+            <div class="stack" id="tnQuick"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 시나리오 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="true"><span class="t">시나리오</span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b">
+          <div class="scn" style="padding-top:10px">
+            <button type="button" data-scn="badge"><b>등급 배지 전체</b><span>플랫폼별 모든 등급</span></button>
+            <button type="button" data-scn="filter"><b>필터 확인</b><span>봇·금칙어·숨길 닉네임</span></button>
+            <button type="button" data-scn="tn"><b>투네이션 후원 16종</b><span>종류별 표시 확인</span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 선택한 메시지 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="true"><span class="t">선택한 메시지<span class="sub">미리보기에서 채팅을 누르면 표시</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b">
+          <div class="stack" style="padding-top:10px">
+            <div class="seg" id="jsonTabs"><button type="button" data-v="norm" aria-pressed="true">공통 형식</button><button type="button" data-v="raw" aria-pressed="false">플랫폼 원본</button></div>
+            <pre class="json" id="jsonOut">미리보기에서 채팅을 누르면 여기에 표시됩니다.</pre>
+            <p class="hint">플랫폼 원본은 구조 예시(목업)입니다. 실제 필드는 개발팀 수집 결과로 확정합니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 기획 메모 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">기획 메모<span class="sub">이 페이지의 전제</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b" hidden>
+          <ul class="memo" style="padding-top:12px">
+            <li>지원 플랫폼: 유튜브, 트위치, 치지직, KICK, CHEAR. SOOP은 이번 범위에서 제외.</li>
+            <li>경쟁력: 플랫폼별 등급 배지를 최대한 살리고, 투네이션 후원자 등급(VIP·VVIP·SVIP)을 플랫폼 구분 없이 붙인다.</li>
+            <li>통합 시청자수: 플랫폼별 시청자수를 가져와 합산한다(필수).</li>
+            <li>제외: 공지, 채팅 고정, 플랫폼 후원 표시, 명령어 제어 (서드파티 제약).</li>
+            <li>투네이션 후원은 우리 데이터라 선택 옵션으로 포함. 16종을 메시지형·콘텐츠형·선택형·미션형으로 묶어(UI 설계서 v3.3 후원 탭의 입력 항목 기준) 한 줄·강조 줄·카드로 표시. 실서비스 기본값은 꺼짐 권장.</li>
+            <li>CHEAR 등급 체계는 가정값. 연동 문서로 확인 필요.</li>
+            <li>iframe 수집 방식은 미정.</li>
+          </ul>
+        </div>
+      </section>
+    </section>
+  </div>
+
+  <!-- ===================== 미리보기 (400px 고정) ===================== -->
+  <aside class="preview" aria-label="미리보기">
+    <div class="card prev-card">
+      <div class="prev-head"><b>미리보기</b><span class="meta" id="hiddenCount">필터로 숨김 0</span></div>
+      <div class="prev-bar">
+        <div class="seg" data-k="stage.bg" data-opts="game:게임 화면|checker:투명|light:밝은 화면"></div>
+        <button type="button" class="btn sm" id="pauseBtn">일시정지</button>
+      </div>
+      <div id="scope" class="cw-scope">
+        <div class="stage bg-game" id="stage">
+          <div class="src" id="src">
+            <div class="src-bg" id="srcBg" aria-hidden="true"></div>
+            <div id="wTop" class="stack" style="gap:var(--gap)"></div>
+            <div class="cw-list" id="chatList" aria-live="off"></div>
+            <div id="wBottom" class="stack" style="gap:var(--gap)"></div>
+          </div>
+        </div>
+        <div class="separate" id="separate"></div>
+      </div>
+      <p class="hint prev-foot">400px 고정 미리보기입니다. 채팅을 누르면 테스트 탭의 '선택한 메시지'에 공통 형식 데이터가 보여요.</p>
+    </div>
+  </aside>
+</main>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtN = n => Number(n).toLocaleString('ko-KR');
+const hms = (d = new Date()) => [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2,'0')).join(':');
+const rnd = a => a[Math.floor(Math.random() * a.length)];
+const chance = p => Math.random() < p;
+
+/* ---------- platform & role definitions ---------- */
+const PF = {
+  youtube: { name:'YouTube', icon:'▶', bg:'#ff0033', fg:'#fff', ph:'videoId 또는 @핸들', def:'@coffeewriter', userColor:false, viewers:1240,
+    roles:[
+      {k:'owner', label:'스트리머', cls:'streamer', g:'♛', bg:'#ffd23f', fg:'#3a2a00'},
+      {k:'moderator', label:'매니저', cls:'manager', g:'M', bg:'#5e84f1', fg:'#fff'},
+      {k:'member', label:'멤버십', cls:'vip', g:'멤', bg:'#0f9d58', fg:'#fff', months:true},
+      {k:'verified', label:'인증', cls:null, g:'✓', bg:'#8a8f98', fg:'#fff'}],
+    events:{ donation:{label:'슈퍼챗', unit:'원'}, sub:{label:'멤버십 가입'} }, amounts:[1000,5000,10000,50000] },
+  twitch: { name:'Twitch', icon:'T', bg:'#9146ff', fg:'#fff', ph:'채널 로그인 이름', def:'coffeewriter', userColor:true, viewers:860,
+    roles:[
+      {k:'broadcaster', label:'스트리머', cls:'streamer', g:'♛', bg:'#e91916', fg:'#fff'},
+      {k:'moderator', label:'매니저', cls:'manager', g:'M', bg:'#00ad03', fg:'#fff'},
+      {k:'vip', label:'VIP', cls:'vip', g:'VIP', bg:'#e005b9', fg:'#fff'},
+      {k:'subscriber', label:'구독', cls:'subscriber', g:'구', bg:'#9146ff', fg:'#fff', months:true},
+      {k:'verified', label:'인증', cls:null, g:'✓', bg:'#a970ff', fg:'#fff'},
+      {k:'artist', label:'아티스트', cls:null, g:'A', bg:'#1e69ff', fg:'#fff'},
+      {k:'bits', label:'Bits', cls:null, g:'◆', bg:'#9c3ee8', fg:'#fff'},
+      {k:'turbo', label:'터보', cls:null, g:'T', bg:'#59399a', fg:'#fff', off:true},
+      {k:'prime', label:'프라임', cls:null, g:'P', bg:'#0aa4e5', fg:'#fff', off:true}],
+    events:{ donation:{label:'Bits 응원', unit:'Bits'}, sub:{label:'구독'} }, amounts:[100,300,500,1000] },
+  chzzk: { name:'치지직', icon:'Z', bg:'#00e396', fg:'#0b1a12', ph:'채널 id (32자)', def:'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', userColor:true, viewers:2310,
+    roles:[
+      {k:'streamer', label:'스트리머', cls:'streamer', g:'♛', bg:'#00e396', fg:'#0b1a12'},
+      {k:'manager', label:'매니저', cls:'manager', g:'M', bg:'#2e6bff', fg:'#fff'},
+      {k:'subscriber', label:'구독', cls:'subscriber', g:'구', bg:'#9b5cff', fg:'#fff', months:true},
+      {k:'cheese', label:'치즈 후원자', cls:null, g:'치', bg:'#ffcc33', fg:'#3a2a00'},
+      {k:'gifter', label:'구독 선물', cls:null, g:'선', bg:'#ff8a3d', fg:'#fff'}],
+    events:{ donation:{label:'치즈', unit:'치즈'}, sub:{label:'구독'} }, amounts:[1000,2000,5000,10000] },
+  kick: { name:'KICK', icon:'K', bg:'#53fc18', fg:'#0b0e0f', ph:'채널 slug', def:'coffeewriter', userColor:true, viewers:140,
+    roles:[
+      {k:'broadcaster', label:'스트리머', cls:'streamer', g:'♛', bg:'#53fc18', fg:'#0b0e0f'},
+      {k:'moderator', label:'매니저', cls:'manager', g:'M', bg:'#00c7ff', fg:'#04202b'},
+      {k:'vip', label:'VIP', cls:'vip', g:'VIP', bg:'#ffc800', fg:'#2a2000'},
+      {k:'subscriber', label:'구독', cls:'subscriber', g:'구', bg:'#2fbf71', fg:'#fff', months:true},
+      {k:'og', label:'OG', cls:null, g:'OG', bg:'#00d2a0', fg:'#04241c'},
+      {k:'founder', label:'창립자', cls:null, g:'F', bg:'#ffb800', fg:'#2a1d00'},
+      {k:'verified', label:'인증', cls:null, g:'✓', bg:'#1f2a22', fg:'#53fc18'},
+      {k:'subgifter', label:'구독 선물', cls:null, g:'선', bg:'#ff5bb0', fg:'#fff'}],
+    events:{ donation:{label:'Kicks', unit:'Kicks'}, sub:{label:'구독'} }, amounts:[10,50,100,500] },
+  chear: { name:'CHEAR', icon:'C', bg:'#ff4f7b', fg:'#fff', ph:'연동키', def:'EgmuEFKw-dev', userColor:false, viewers:95, assumed:true,
+    roles:[
+      {k:'streamer', label:'스트리머', cls:'streamer', g:'♛', bg:'#ff4f7b', fg:'#fff'},
+      {k:'manager', label:'매니저', cls:'manager', g:'M', bg:'#4f8cff', fg:'#fff'},
+      {k:'fan', label:'팬', cls:'subscriber', g:'팬', bg:'#ff9f43', fg:'#2a1600', months:true}],
+    events:{ donation:{label:'후원', unit:'원'}, sub:{label:'팬 가입'} }, amounts:[1000,3000,5000] }
+};
+const PF_ORDER = ['youtube','chear','kick','chzzk','twitch'];   // 화면 노출 순서
+const TOON = { name:'투네이션', icon:'+', bg:'#2f6bff', fg:'#fff', roles:[], events:{} };
+const pf = k => k === 'toonation' ? TOON : PF[k];
+const TIERS = {
+  VIP:  { g:'VIP',  bg:'#2f6bff', fg:'#fff' },
+  VVIP: { g:'VVIP', bg:'#8b5cf6', fg:'#fff' },
+  SVIP: { g:'SVIP', bg:'linear-gradient(135deg,#ffe08a,#ff9f1c)', fg:'#3a2400' }
+};
+const CLASSES = [['streamer','스트리머'],['manager','매니저'],['tn','투네이션 VIP'],['vip','플랫폼 VIP·멤버십'],['subscriber','구독자'],['general','일반']];
+const EMOTES = { heart:'❤️', clap:'👏', lol:'🤣', fire:'🔥', cry:'😭', gg:'🏆' };
+const BOT_NAMES = ['nightbot','streamelements','moobot','fossabot','wizebot','botrix'];
+
+/* ---------- toonation donation kinds (TOO UI 설계서 v3.3 '후원페이지 > 후원 탭' 16종 기준) ----------
+   msg    : 후원 탭에 메시지 입력칸('후원과 함께 메시지/채팅을 보내보세요')이 있는지
+   amt    : 금액 칸의 의미 (후원 금액 / 룰렛 금액 / 성공 상금 …), unit: 캐시 또는 원(게임 후원은 PG 결제)
+   fields : 도네이터가 고르거나 입력하는 항목 = 채팅에 노출할 수 있는 요소 */
+const TN_GROUPS = {
+  msg:     { label:'메시지형', desc:'금액과 메시지가 중심', color:'#2f6bff', color2:'#5a3fe0' },
+  media:   { label:'콘텐츠형', desc:'음성·영상·그림을 보냄 (메시지 입력 없음)', color:'#0e9f8f', color2:'#1769aa' },
+  select:  { label:'선택형',   desc:'크리에이터가 등록한 항목을 골라 후원', color:'#8b5cf6', color2:'#c2389f' },
+  mission: { label:'미션형',   desc:'상금을 걸고 도전을 요청 (메시지 입력 없음)', color:'#e0761b', color2:'#d23b5a' }
+};
+const TN_KINDS = [
+  { k:'text', label:'텍스트', grp:'msg', w:30, msg:true, amt:'후원 금액', def:5000, amounts:[1000,3000,5000,10000,30000],
+    fields:[], line:() => '', sample:() => ({}) },
+  { k:'mini', label:'미니', grp:'msg', w:10, msg:true, amt:'후원 금액', def:1000, amounts:[1000,2000],
+    fields:[{ key:'colorOn', label:'글자 색상', options:['적용 안 함','적용'] }, { key:'color', label:'색상 선택', def:'#ffd166', color:true }],
+    line:() => '', sample:() => ({ colorOn: chance(.4) ? '적용' : '적용 안 함', color:rnd(['#ffd166','#7bdff2','#ff8fab','#b8f2a0']) }) },
+  { k:'voice', label:'음성', grp:'media', w:6, msg:false, amt:'후원 금액', def:3000, amounts:[1000,2000,3000],
+    fields:[{ key:'seconds', label:'재생 시간 (초)', def:16, num:true }],
+    line:d => `음성 ${d.seconds}초`, sample:() => ({ seconds:5 + Math.floor(Math.random()*25) }) },
+  { k:'video', label:'영상', grp:'media', w:8, msg:false, amt:'후원 금액', def:5000, amounts:[3000,5000,6000],
+    fields:[{ key:'title', label:'영상 제목', def:'응원 영상' }, { key:'seconds', label:'재생 시간 (초)', def:48, num:true }],
+    line:d => `「${d.title}」 ${d.seconds}초`, sample:() => ({ title:rnd(['오늘의 하이라이트 클립','추천 플레이 영상','응원 영상']), seconds:10 + Math.floor(Math.random()*50) }) },
+  { k:'drawing', label:'그림', grp:'media', w:2, msg:false, amt:'후원 금액', def:5000, amounts:[2000,5000],
+    fields:[{ key:'title', label:'그림 제목', def:'내 그림 어때?' }],
+    line:d => `「${d.title}」`, sample:() => ({ title:rnd(['내 그림 어때?','방장 초상화','오늘의 낙서']) }) },
+  { k:'signature', label:'시그니처', grp:'select', w:8, msg:true, amt:'후원 금액', def:10000, amounts:[5000,10000,30000],
+    fields:[{ key:'signature', label:'시그니처', def:'하트 뿅뿅' }],
+    line:d => `「${d.signature}」`, sample:() => ({ signature:rnd(['하트 뿅뿅','치킨 먹자','박수 갈채']) }) },
+  { k:'roulette', label:'룰렛', grp:'select', w:8, msg:false, amt:'룰렛 금액', def:5000, amounts:[1000,5000],
+    fields:[{ key:'roulette', label:'룰렛', def:'작은 용돈 플러스' }],
+    line:d => `「${d.roulette}」`, sample:() => ({ roulette:rnd(['작은 용돈 플러스','큰 용돈 플러스','벌칙 룰렛']) }) },
+  { k:'gacha', label:'뽑기', grp:'select', w:3, msg:false, amt:'총 금액', def:3000, amounts:[3000,30000],
+    fields:[{ key:'gacha', label:'뽑기', def:'행운 캡슐' }, { key:'count', label:'후원 횟수', options:['1회','10회'] }],
+    line:d => `「${d.gacha}」 ${d.count}`, sample:() => ({ gacha:rnd(['행운 캡슐','스페셜 박스']), count:rnd(['1회','1회','10회']) }) },
+  { k:'vote', label:'투표', grp:'select', w:3, msg:false, amt:'총 금액', def:20000, amounts:[20000,40000],
+    fields:[{ key:'question', label:'투표명', def:'다음 게임 뭐 할까?' }, { key:'option', label:'투표 항목', def:'공포 게임' }, { key:'votes', label:'투표 수', def:1, num:true }, { key:'ticket', label:'투표권', options:['유료','무료'] }],
+    line:d => `「${d.question}」 ${d.option}에 ${d.votes}표`,
+    sample:() => ({ question:'다음 게임 뭐 할까?', option:rnd(['공포 게임','리듬 게임','레이싱']), votes:1 + Math.floor(Math.random()*5), ticket: chance(.2) ? '무료' : '유료' }) },
+  { k:'wishlist', label:'위시리스트', grp:'select', w:3, msg:true, amt:'상품 가격', def:30000, amounts:[3000,30000,50000],
+    fields:[{ key:'item', label:'상품', def:'기계식 키보드' }],
+    line:d => `「${d.item}」`, sample:() => ({ item:rnd(['기계식 키보드','방송용 마이크','의자 쿠션']) }) },
+  { k:'gift', label:'기프트', grp:'select', w:3, msg:true, amt:'후원 금액', def:5000, amounts:[1000,5000],
+    fields:[{ key:'item', label:'상품', def:'커피 기프티콘' }],
+    line:d => `「${d.item}」 선물`, sample:() => ({ item:rnd(['커피 기프티콘','케이크 교환권','모니터 피규어']) }) },
+  { k:'game', label:'게임', grp:'select', w:3, msg:true, amt:'결제 금액', unit:'원', def:13200, amounts:[3300,13200],
+    fields:[{ key:'game', label:'게임', def:'판타지 온라인' }, { key:'character', label:'캐릭터', def:'전사01' }, { key:'item', label:'아이템', def:'다이아' }, { key:'qty', label:'수량', def:4, num:true }],
+    line:d => `${d.game} · 「${d.item}」 ×${d.qty}`,
+    sample:() => ({ game:'판타지 온라인', character:'전사01', item:rnd(['다이아','부활권','보급 상자']), qty:1 + Math.floor(Math.random()*5) }) },
+  { k:'crew', label:'크루', grp:'select', w:2, msg:true, amt:'후원 금액', def:10000, amounts:[10000,30000],
+    fields:[{ key:'member', label:'크루원', def:'크루원A' }, { key:'crewType', label:'후원 타입', options:['시그니처','텍스트','UP'] }, { key:'signature', label:'시그니처 (시그니처 타입일 때)', def:'하트 뿅뿅' }, { key:'contrib', label:'기여도', options:['플러스','마이너스'] }],
+    line:d => `${d.member} · ${d.crewType === '시그니처' ? `「${d.signature}」` : d.crewType} · 기여도 ${d.contrib === '마이너스' ? '−' : '+'}`,
+    sample:() => ({ member:rnd(['크루원A','크루원B']), crewType:rnd(['시그니처','텍스트','UP']), signature:'하트 뿅뿅', contrib: chance(.15) ? '마이너스' : '플러스' }) },
+  { k:'quest', label:'퀘스트', grp:'mission', w:3, msg:false, amt:'성공 상금', def:10000, amounts:[10000,30000],
+    fields:[{ key:'quest', label:'퀘스트명', def:'페트병 던져서 한번에 세우기' }, { key:'minutes', label:'제한 시간 (분)', def:30, num:true }],
+    line:d => `「${d.quest}」 · 제한 ${d.minutes}분`, sample:() => ({ quest:rnd(['페트병 던져서 한번에 세우기','노데스 클리어','10킬 달성']), minutes:rnd([10,30,60]) }) },
+  { k:'luckybox', label:'럭키박스', grp:'mission', w:3, msg:false, amt:'당첨 상금', def:5000, amounts:[5000,10000],
+    fields:[{ key:'boxes', label:'박스 수', options:['2','3','4','5'] }, { key:'wins', label:'당첨 박스 수', def:1, num:true }, { key:'consolation', label:'꽝 위로금 (캐시)', def:1000, num:true }],
+    line:d => `박스 ${d.boxes}개 중 당첨 ${d.wins}개 · 꽝 위로금 ${fmtN(d.consolation)}캐시`, sample:() => ({ boxes:rnd(['2','3','4']), wins:1, consolation:1000 }) },
+  { k:'play', label:'플레이', grp:'mission', w:3, msg:false, amt:'정답 상금', def:10000, amounts:[5000,10000],
+    fields:[{ key:'mode', label:'퀴즈 종류', options:['객관식 퀴즈','초성 퀴즈','그림 퀴즈'] }, { key:'question', label:'문제', def:'영화 속 명대사 맞히기' }],
+    line:d => `${d.mode} 「${d.question}」`, sample:() => ({ mode:rnd(['객관식 퀴즈','초성 퀴즈','그림 퀴즈']), question:rnd(['영화 속 명대사 맞히기','오늘 점심 메뉴는?']) }) }
+];
+const TN_KIND = Object.fromEntries(TN_KINDS.map(x => [x.k, x]));
+function tnAmountText(d){ const K = TN_KIND[d.kind]; if (d.free) return '무료'; return (K.grp === 'mission' ? '상금 ' : '') + fmtN(d.amount.value) + (K.unit === '원' ? '원' : '캐시'); }
+function pickTnKind(){ let r = Math.random() * TN_KINDS.reduce((a,x) => a + x.w, 0); for (const x of TN_KINDS){ r -= x.w; if (r <= 0) return x.k; } return 'text'; }
+
+const NICK_DARK = {streamer:'#ffd23f', manager:'#5ec8ff', tn:'#b98cff', vip:'#ff7ad9', subscriber:'#8ef0a8', general:'#e6e9ef'};
+const MSG_DARK = {streamer:'#ffffff', manager:'#ffffff', tn:'#ffffff', vip:'#ffffff', subscriber:'#ffffff', general:'#ffffff'};
+const NICK_LIGHT = {streamer:'#b86a00', manager:'#1f63d6', tn:'#7036e0', vip:'#c41f8f', subscriber:'#178a43', general:'#3b4252'};
+const MSG_LIGHT = {streamer:'#1d2333', manager:'#1d2333', tn:'#1d2333', vip:'#1d2333', subscriber:'#1d2333', general:'#1d2333'};
+
+const fill = c => Object.fromEntries(CLASSES.map(([k]) => [k, c]));
+const THEMES = {
+  minimal: { name:'미니멀 (기본)', light:false, box:{mode:'text', color:'#000000', alpha:0, radius:0} },
+  basic:   { name:'기본 박스', light:false, box:{mode:'box', color:'#000000', alpha:45, radius:8} },
+  neon:    { name:'네온',      light:false, box:{mode:'box', color:'#0a0c1c', alpha:72, radius:10} },
+  card:    { name:'카드',      light:true,  box:{mode:'box', color:'#ffffff', alpha:100, radius:10} },
+  kakao:   { name:'카카오톡',  light:false, outline:true, box:{mode:'text', color:'#ffffff', alpha:100, radius:14}, msg:fill('#1e1e1e') },
+  discord: { name:'디스코드',  light:false, outline:false, gap:2, box:{mode:'box', color:'#313338', alpha:94, radius:6},
+             nick:{streamer:'#f0b232', manager:'#8ea1e1', tn:'#c9a0ff', vip:'#ff73fa', subscriber:'#57f287', general:'#f2f3f5'}, msg:fill('#dbdee1') },
+  ow:      { name:'오버워치',  light:false, outline:false, box:{mode:'text', color:'#0e1628', alpha:88, radius:0},
+             nick:{streamer:'#f99e1a', manager:'#5ec8ff', tn:'#c9a0ff', vip:'#ff7ad9', subscriber:'#8ef0a8', general:'#9fd8ff'}, msg:fill('#ffffff') },
+  chalk:   { name:'칠판',      light:false, outline:false, fadeTop:false, box:{mode:'text', color:'#25402f', alpha:100, radius:0},
+             nick:{streamer:'#f6e27f', manager:'#9fd3f5', tn:'#d7b8ff', vip:'#f7a7c0', subscriber:'#b8e994', general:'#f2efe4'}, msg:fill('#f2efe4') },
+  lol:     { name:'롤',        light:false, outline:false, box:{mode:'box', color:'#010a13', alpha:88, radius:0},
+             nick:{streamer:'#c8aa6e', manager:'#0ac8b9', tn:'#c9a0ff', vip:'#e88ef0', subscriber:'#8ee0a8', general:'#cdbe91'}, msg:fill('#f0e6d2') },
+  pubg:    { name:'배그',      light:false, outline:false, box:{mode:'box', color:'#000000', alpha:62, radius:2},
+             nick:{streamer:'#f2a900', manager:'#7fd1ff', tn:'#c9a0ff', vip:'#ff8fb1', subscriber:'#a8e06b', general:'#e8e8e8'}, msg:fill('#e8e8e8') },
+  xmas:    { name:'크리스마스', light:false, outline:false, box:{mode:'box', color:'#c62828', alpha:100, radius:12},
+             nick:{streamer:'#ffe082', manager:'#b3e5fc', tn:'#e1bee7', vip:'#ffccbc', subscriber:'#c8e6c9', general:'#fff8e1'}, msg:fill('#ffffff') }
+};
+const themeColors = t => ({ nick:{ ...(t.nick || (t.light ? NICK_LIGHT : NICK_DARK)) }, msg:{ ...(t.msg || (t.light ? MSG_LIGHT : MSG_DARK)) } });
+
+/* ---------- settings ---------- */
+const roleOnDefault = {};
+PF_ORDER.forEach(k => { roleOnDefault[k] = {}; PF[k].roles.forEach(r => roleOnDefault[k][r.k] = !r.off); });
+const connDefault = {};
+PF_ORDER.forEach(k => connDefault[k] = { on:true, id:PF[k].def });
+
+const DEFAULTS = {
+  conn:{ mode:'mock', rate:1.2, p:connDefault },
+  theme:'minimal',
+  box:{ mode:'text', color:'#000000', alpha:0, radius:0 },
+  layout:{ align:'wrap', dir:'left', maxLines:12, gap:6, fadeTop:true, colon:false },
+  fx:{ type:'slide', speed:0.25, autoHide:false, hideSec:20 },
+  badges:{ platform:true, roles:true, months:true, tn:true, tnPos:'before', size:'m', roleOn:roleOnDefault },
+  colors:{ nickMode:'role', single:'#ffffff', tnPriority:true, nick:{...NICK_DARK}, msg:{...MSG_DARK} },
+  font:{ family:'Noto Sans KR', size:20, bold:true, outline:true, outlineColor:'#000000', outlineWidth:3 },
+  filter:{ nicks:['Nightbot','StreamElements','MooBot'], bots:true, words:['바보','광고문의'], wordMode:'heart' },
+  viewers:{ pos:'top', mode:'both' },
+  timer:{ pos:'top', base:'uptime', ref:'earliest' },
+  tn:{ on:true, style:'accent', min:0, showAmount:true, showMessage:true, applyFilter:true, kinds:Object.fromEntries(TN_KINDS.map(x => [x.k, true])) },
+  customCss:'',
+  bg:{ src:'', name:'', fit:'cover', opacity:100 },
+  stage:{ bg:'game', width:460 }
+};
+const KEY = 'tn-chat-widget-lab-v1';
+const clone = o => JSON.parse(JSON.stringify(o));
+const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+function deepMerge(t, s){ for (const k in s){ if (isObj(s[k]) && isObj(t[k])) deepMerge(t[k], s[k]); else t[k] = s[k]; } return t; }
+function load(){ try { const raw = localStorage.getItem(KEY); if (raw) return deepMerge(clone(DEFAULTS), JSON.parse(raw)); } catch(e){} return clone(DEFAULTS); }
+let S = load();
+if (!THEMES[S.theme]) S.theme = 'minimal';
+if (S.layout.align === 'oneline') S.layout.align = 'wrap';
+// 금칙어는 별도 메뉴에서 관리: 테스트용 목업 목록과 ♡ 표시로 고정
+S.filter.words = DEFAULTS.filter.words.slice(); S.filter.wordMode = 'heart';   // 예전 '한 줄(잘림)' 옵션은 삭제됨
+let saveT;
+function save(){ clearTimeout(saveT); saveT = setTimeout(() => {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch(e){ try { localStorage.setItem(KEY, JSON.stringify({ ...S, bg:{ ...S.bg, src:'' } })); } catch(e2){} }   // 이미지가 너무 커서 저장 못 하면 이미지만 빼고 저장
+}, 300); }
+const getPath = p => p.split('.').reduce((o,k) => o == null ? o : o[k], S);
+function setPath(p, v){ const ks = p.split('.'); let o = S; ks.slice(0,-1).forEach(k => { if (!isObj(o[k])) o[k] = {}; o = o[k]; }); o[ks[ks.length-1]] = v; }
+
+/* ---------- runtime state ---------- */
+const state = {
+  status:{}, viewers:{}, store:[], users:{},
+  timerMode:S.timer.base, paused:false, streamStart:null,
+  sel:null, jsonTab:'norm', filtered:0, scTimers:[]
+};
+PF_ORDER.forEach(k => { state.status[k] = 'idle'; state.viewers[k] = PF[k].viewers; });
+
+/* ---------- mock users ---------- */
+const NICKS = ['성덕선','히나마루','고양이집사','새벽세시','치즈냥','감자튀김','무지개곰','퇴근하고왔음','StarDust_kr','neo_kim','밤샘러','수박바','오늘도출석','라면한그릇','pixelfox','단풍잎','공부하다옴','떨어진다꽉잡아'];
+const COLORS = ['#ff6b6b','#ffd166','#06d6a0','#4cc9f0','#b388ff','#ff8fab','#90be6d','#f9844a','#7bdff2'];
+const uid = p => p + '_' + Math.random().toString(16).slice(2, 10);
+const roleOf = (p, cls) => PF[p].roles.find(r => r.cls === cls);
+function makeUser(p, nickname, roles = [], extra = {}){
+  return { id:uid(p), nickname, roles, color: PF[p].userColor ? rnd(COLORS) : null, subMonths:null, toonationTier:null, ...extra };
+}
+function buildPools(){
+  PF_ORDER.forEach(p => {
+    const P = PF[p];
+    const streamer = makeUser(p, '커피라이터', [roleOf(p,'streamer').k]);
+    const shuffled = [...NICKS].sort(() => Math.random() - .5);
+    const managers = [makeUser(p, shuffled.pop(), [roleOf(p,'manager').k])];
+    const viewers = shuffled.slice(0, 10).map(n => {
+      const roles = []; let months = null;
+      const sub = roleOf(p,'subscriber'); const vip = roleOf(p,'vip');
+      if (sub && chance(.5)) { roles.push(sub.k); months = 1 + Math.floor(Math.random()*36); }
+      if (vip && chance(.18)) { roles.push(vip.k); if (vip.months) months = months || 1 + Math.floor(Math.random()*24); }
+      P.roles.filter(r => !r.cls).forEach(r => { if (chance(.16)) roles.push(r.k); });
+      const t = Math.random(); const tier = t < .12 ? 'VIP' : t < .19 ? 'VVIP' : t < .22 ? 'SVIP' : null;
+      return makeUser(p, n, roles, { subMonths:months, toonationTier:tier });
+    });
+    const bot = (p === 'twitch' || p === 'youtube') ? makeUser(p, p === 'twitch' ? 'Nightbot' : 'StreamElements', p === 'twitch' ? ['moderator'] : ['moderator'], { isBot:true }) : null;
+    state.users[p] = { streamer, managers, viewers, bot };
+  });
+}
+function nickUser(p, nick){
+  const pool = state.users[p];
+  let u = pool.viewers.find(v => v.nickname === nick);
+  if (!u){ const sub = roleOf(p,'subscriber'); u = makeUser(p, nick, sub ? [sub.k] : [], { subMonths: sub ? 7 : null }); pool.viewers.push(u); }
+  return u;
+}
+
+const CHAT_LINES = ['ㅋㅋㅋㅋㅋㅋ','오늘 컨디션 좋아 보이네요','방금 그거 진짜 미쳤다 :fire:','하이하이~ 출석!','다음 판 가자!!','이거 몇 시까지 해요?','ㄹㅇ 개웃기네 :lol:','첫 방송부터 봤어요 :clap:','아 아깝다 ㅠㅠ :cry:','GG :gg:','오늘 합방 언제 해요?','브금 제목 뭐예요?','퇴근하고 바로 왔어요','방금 클립 땄다 ㅋㅋ',':heart: :heart: :heart:','물 좀 드세요!','이 게임 엔딩 몇 개예요?','바보같이 또 죽었네 ㅋㅋ','nice shot','lol that was clean','채팅창 디자인 바뀌었네?','광고문의는 DM 주세요','보스 패턴 외웠다 이제'];
+const STREAMER_LINES = ['다들 와줘서 고마워요!','잠깐 물 마시고 올게요','다음 판 진짜 이긴다','구독 고마워요 :heart:'];
+const MANAGER_LINES = ['도배 자제 부탁드려요','다음 합방 일정은 공지 확인해 주세요','클립 채널에 올려뒀어요'];
+const BOT_LINES = ['명령어 목록은 !명령어 로 확인하세요','팔로우 고마워요! 즐거운 시청 되세요'];
+const DON_LINES = ['오늘 방송 너무 재밌어요!','치킨 드세요 :heart:','다음 게임은 공포겜 가즈아','생일 축하해요!!','응원합니다 :clap:'];
+
+/* ---------- normalized message ---------- */
+let seq = 0;
+function fragments(text){
+  return text.split(/(:[a-z]+:)/).filter(Boolean).map(t => {
+    const m = t.match(/^:([a-z]+):$/);
+    return m && EMOTES[m[1]] ? { type:'emote', name:m[1], url:`https://emote.example/${m[1]}.webp` } : { type:'text', text:t };
+  });
+}
+function mk(p, u, type, text){
+  return {
+    id:'msg_' + String(++seq).padStart(5,'0'), platform:p, type,
+    user:{ id:u.id, nickname:u.nickname, color:u.color || null, roles:[...(u.roles||[])], subMonths:u.subMonths || null, toonationTier:u.toonationTier || null, isBot:!!u.isBot },
+    message:{ text, fragments:fragments(text) }, receivedAt:null
+  };
+}
+function mkTn(u, kind, amount, text, detail = {}){
+  const K = TN_KIND[kind];
+  const hasMsg = K.msg && !(kind === 'crew' && detail.crewType === 'UP');   // 크루 UP 후원은 메시지 입력 없음
+  const free = kind === 'vote' && detail.ticket === '무료';
+  const m = mk('toonation', { ...u, roles:[], color:null }, 'toonation_donation', hasMsg ? (text || '') : '');
+  m.donation = { kind, kindLabel:K.label, group:K.grp, amountLabel:K.amt, amount:{ value: free ? 0 : amount, unit: K.unit === '원' ? 'KRW' : 'CASH' },
+    free, hasMessage:hasMsg, detail, summary:K.line(detail) };
+  return m;
+}
+function mockTn(viewer){
+  const k = pickTnKind(), K = TN_KIND[k];
+  return mkTn({ ...viewer, id:'tn_' + viewer.id }, k, rnd(K.amounts), rnd(DON_LINES), K.sample());
+}
+function userClass(m){
+  const P = pf(m.platform); const clsSet = new Set(m.user.roles.map(k => (P.roles.find(r => r.k === k) || {}).cls).filter(Boolean));
+  if (clsSet.has('streamer')) return 'streamer';
+  if (clsSet.has('manager')) return 'manager';
+  const tn = m.user.toonationTier && S.badges.tn;
+  if (tn && S.colors.tnPriority) return 'tn';
+  if (clsSet.has('vip')) return 'vip';
+  if (clsSet.has('subscriber')) return 'subscriber';
+  if (tn) return 'tn';
+  return 'general';
+}
+function mockMessage(p){
+  const pool = state.users[p]; const r = Math.random();
+  const viewer = rnd(pool.viewers);
+  if (r < .05) return mk(p, pool.streamer, 'chat', rnd(STREAMER_LINES));
+  if (r < .08 && pool.bot) return mk(p, pool.bot, 'chat', rnd(BOT_LINES));
+  if (r < .15) return mockTn(viewer);
+  if (r < .19) return mk(p, rnd(pool.managers), 'chat', rnd(MANAGER_LINES));
+  return mk(p, viewer, 'chat', rnd(CHAT_LINES));
+}
+
+/* ---------- ingest & visibility ---------- */
+function filteredReason(m){
+  const nick = m.user.nickname.toLowerCase();
+  if (S.filter.nicks.some(n => n.toLowerCase() === nick)) return 'nick';
+  if (S.filter.bots && (m.user.isBot || BOT_NAMES.includes(nick))) return 'bot';
+  if (S.filter.wordMode === 'hide' && hasBanned(m)) return 'word';
+  return null;
+}
+function hasBanned(m){
+  return S.filter.words.some(w => w && m.message.text.includes(w));
+}
+function visible(m){
+  if (m._cleared) return false;
+  if (filteredReason(m)) return false;
+  if (m.type === 'toonation_donation') {
+    const t = S.tn;
+    if (!t.on || !t.kinds[m.donation.kind] || m.donation.amount.value < t.min) return false;
+  }
+  return true;
+}
+function ingest(m){
+  m._t = Date.now(); m.receivedAt = new Date(m._t).toISOString();
+  state.store.push(m); if (state.store.length > 300) state.store.shift();
+  if (filteredReason(m)) { state.filtered++; $('#hiddenCount').textContent = '필터로 숨김 ' + state.filtered; }
+  if (visible(m)) appendMsg(m);
+}
+
+/* ---------- rendering ---------- */
+function hexToRgba(hex, a){ const h = hex.replace('#',''); const n = parseInt(h.length === 3 ? h.split('').map(c => c+c).join('') : h, 16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
+function hashColor(s){ let h = 0; for (const c of s) h = (h*31 + c.charCodeAt(0)) >>> 0; return `hsl(${h % 360} 78% 68%)`; }
+function nickColor(m){
+  const c = S.colors, cls = userClass(m);
+  if (c.nickMode === 'single') return c.single;
+  if (c.nickMode === 'random') return hashColor(m.user.nickname);
+  if (c.nickMode === 'platform') return m.user.color || c.nick[cls];
+  return c.nick[cls];
+}
+const tierBadge = t => { const T = TIERS[t]; return `<span class="cw-badge cw-tnb" style="background:${T.bg};color:${T.fg}" title="투네이션 ${t}">${T.g}</span>`; };
+function badges(m){
+  const P = pf(m.platform), pre = [];
+  if (S.badges.platform) pre.push(`<span class="cw-pf" style="background:${P.bg};color:${P.fg}" title="${P.name}">${P.icon}</span>`);
+  const tn = S.badges.tn && m.user.toonationTier ? tierBadge(m.user.toonationTier) : '';
+  if (tn && S.badges.tnPos === 'before') pre.push(tn);
+  if (S.badges.roles) P.roles.forEach(r => {
+    if (!m.user.roles.includes(r.k) || !(S.badges.roleOn[m.platform] || {})[r.k]) return;
+    const mo = r.months && S.badges.months && m.user.subMonths ? `<i>${m.user.subMonths}</i>` : '';
+    pre.push(`<span class="cw-badge" style="background:${r.bg};color:${r.fg}" title="${P.name} ${r.label}">${r.g}${mo}</span>`);
+  });
+  return { pre:pre.join(''), post: tn && S.badges.tnPos === 'after' ? ' ' + tn : '' };
+}
+function textHtml(m){
+  const filterOn = S.filter.wordMode === 'heart';
+  return m.message.fragments.map(f => {
+    if (f.type === 'emote') return `<span class="cw-emote" title=":${f.name}:">${EMOTES[f.name]}</span>`;
+    let t = f.text;
+    if (filterOn) S.filter.words.forEach(w => { if (w) t = t.split(w).join('♡'.repeat([...w].length)); });
+    return esc(t);
+  }).join('');
+}
+function hhmm(t){ const d = new Date(t || Date.now()), h = d.getHours(); return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${String(d.getMinutes()).padStart(2,'0')}`; }
+const avaHtml = m => `<span class="cw-ava" aria-hidden="true">${esc([...m.user.nickname][0] || '?')}</span>`;
+const timeHtml = m => `<span class="cw-time">${hhmm(m._t)}</span>`;
+const altCls = m => (parseInt(m.id.replace(/\D/g, ''), 10) % 2) ? 'alt' : '';
+function tnHtml(m){
+  const d = m.donation, G = TN_GROUPS[d.group], cls = userClass(m), b = badges(m);
+  const sel = state.sel && state.sel.id === m.id ? 'cw-sel' : '';
+  const chip = `<span class="cw-ev cw-tnchip" style="background:${G.color}">${d.kindLabel}${S.tn.showAmount ? ' ' + tnAmountText(d) : ''}</span>`;
+  const det = d.summary ? `<span class="cw-det">${esc(d.summary)}</span>` : '';
+  const mcol = d.kind === 'mini' && d.detail.colorOn === '적용' ? ` style="color:${esc(d.detail.color)}"` : '';
+  const msg = S.tn.showMessage && m.message.text ? (det ? '<span class="cw-det cw-sepdot">·</span>' : '') + `<span class="cw-msgline"${mcol}>${textHtml(m)}</span>` : '';
+  return `<div class="cw-msg cw-tn tn-${S.tn.style} r-${cls} ${altCls(m)} ${sel}" data-id="${m.id}" data-t="${m._t || 0}" style="--pc:#2f6bff;--gc:${G.color};--gc2:${G.color2};--nc:${nickColor(m)};--mc:${S.tn.style === 'card' ? '#fff' : S.colors.msg[cls]}">`
+    + avaHtml(m) + `<span class="cw-head">${b.pre}<span class="cw-nick">${esc(m.user.nickname)}</span>${b.post}${timeHtml(m)}</span>`
+    + `<span class="cw-text">${chip}${det}${msg}</span></div>`;
+}
+function msgHtml(m){
+  if (m.type === 'toonation_donation') return tnHtml(m);
+  const P = pf(m.platform), cls = userClass(m), b = badges(m);
+  const sel = state.sel && state.sel.id === m.id ? 'cw-sel' : '';
+  return `<div class="cw-msg r-${cls} ${altCls(m)} ${sel}" data-id="${m.id}" data-t="${m._t || 0}" style="--pc:${P.bg};--nc:${nickColor(m)};--mc:${S.colors.msg[cls]}">`
+    + avaHtml(m) + `<span class="cw-head">${b.pre}<span class="cw-nick">${esc(m.user.nickname)}</span>${b.post}${timeHtml(m)}</span>`
+    + `<span class="cw-text">${textHtml(m)}</span></div>`;
+}
+function renderAll(){
+  const now = Date.now();
+  const vis = state.store.filter(m => visible(m) && !(S.fx.autoHide && now - m._t > S.fx.hideSec*1000));
+  $('#chatList').innerHTML = vis.slice(-S.layout.maxLines).map(m => msgHtml(m)).join('');
+}
+function appendMsg(m){
+  const list = $('#chatList');
+  list.insertAdjacentHTML('beforeend', msgHtml(m));
+  list.lastElementChild.classList.add('cw-enter');
+  while (list.children.length > S.layout.maxLines) list.firstElementChild.remove();
+}
+
+/* widgets */
+function fmtDur(sec){ sec = Math.max(0, sec); const h = Math.floor(sec/3600), m = Math.floor(sec%3600/60), s = sec%60; const p = n => String(n).padStart(2,'0'); return h ? `${h}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`; }
+const liveList = () => PF_ORDER.filter(k => state.status[k] === 'live');
+function timerState(){
+  const now = Date.now();
+  if (state.timerMode === 'clock') return { label:'현재 시간', val:hms() };
+  if (state.timerMode === 'uptime') {
+    const p = uptimeRef();
+    return { label:'방송 시간', val: p ? fmtDur(Math.floor((now - startOf(p))/1000)) : '방송 전' };
+  }
+  return null;
+}
+function viewersHtml(){
+  const live = liveList(); if (!live.length) return '';
+  const total = live.reduce((a,k) => a + state.viewers[k], 0);
+  const chips = S.viewers.mode !== 'total' ? live.map(k => `<span class="cw-vc"><span class="cw-pf" style="background:${PF[k].bg};color:${PF[k].fg}" title="${PF[k].name}">${PF[k].icon}</span><b data-vc="${k}">${fmtN(state.viewers[k])}</b></span>`).join('') : '';
+  const tot = S.viewers.mode !== 'each' ? `<span class="cw-vt">합계 <b data-vt>${fmtN(total)}</b></span>` : '';
+  return `<div class="cw-w cw-viewers"><span class="cw-wl">시청자</span>${chips}${tot}</div>`;
+}
+function timerHtml(){ const t = timerState(); if (!t) return ''; return `<div class="cw-w cw-timer ${t.done ? 'done' : ''}"><span class="cw-wl cw-tlabel">${t.label}</span><span class="cw-tval" data-tick>${t.val}</span></div>`; }
+function renderWidgets(){
+  const top = [], bottom = [], sep = [];
+  const place = (pos, html, label) => { if (!html || pos === 'off') return; if (pos === 'top') top.push(html); else if (pos === 'bottom') bottom.push(html); else if (pos === 'separate') sep.push({ label, html }); };
+  place(S.viewers.pos, viewersHtml(), '시청자수');
+  place(S.timer.pos, timerHtml(), '방송 시간');
+  renderUptimeInfo();
+  $('#wTop').innerHTML = top.join(''); $('#wBottom').innerHTML = bottom.join('');
+  $('#separate').innerHTML = sep.length ? `<div class="sep-head">별도 URL로 띄운 위젯</div><div class="sep-grid">${sep.map(s => `<div class="sep-item"><span class="sep-label">${s.label} 전용 URL 소스</span><div class="stage mini bg-checker">${s.html}</div></div>`).join('')}</div>` : '';
+}
+function updateViewers(){
+  $$('[data-vc]').forEach(e => e.textContent = fmtN(state.viewers[e.dataset.vc]));
+  const total = liveList().reduce((a,k) => a + state.viewers[k], 0);
+  $$('[data-vt]').forEach(e => e.textContent = fmtN(total));
+}
+
+/* scope styling */
+function applyScope(){
+  const sc = $('#scope');
+  sc.className = ['cw-scope', 'th-' + S.theme, 'box-' + S.box.mode, 'al-' + S.layout.align, 'dir-' + S.layout.dir, 'fx-' + S.fx.type,
+    'bs-' + S.badges.size, S.layout.fadeTop ? 'fade-top' : '', S.font.outline ? 'outlined' : '', S.layout.colon && S.layout.align === 'wrap' ? 'colon' : ''].join(' ');
+  const st = sc.style;
+  st.setProperty('--ff', `'${S.font.family}', 'Noto Sans KR', sans-serif`);
+  st.setProperty('--fs', S.font.size + 'px');
+  st.setProperty('--wfs', Math.round(S.font.size * .8) + 'px');
+  st.setProperty('--fw', S.font.bold ? 700 : 400);
+  st.setProperty('--sw', S.font.outlineWidth + 'px');
+  st.setProperty('--sc', S.font.outlineColor);
+  st.setProperty('--boxbg', hexToRgba(S.box.color, S.box.alpha/100));
+  st.setProperty('--rad', S.box.radius + 'px');
+  st.setProperty('--gap', S.layout.gap + 'px');
+  st.setProperty('--spd', S.fx.speed + 's');
+  $('#stage').className = 'stage bg-' + S.stage.bg;
+  $('#customCss').textContent = S.customCss || '';
+  applyBg();
+  $$('#themeGrid .theme-card').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.theme === S.theme)));
+}
+/* 채팅창 배경 이미지 */
+function applyBg(){
+  const el = $('#srcBg'), b = S.bg || {};
+  el.hidden = !b.src;
+  if (b.src) {
+    el.style.backgroundImage = `url("${b.src}")`;
+    el.style.backgroundSize = b.fit === 'repeat' ? 'auto' : b.fit;
+    el.style.backgroundRepeat = b.fit === 'repeat' ? 'repeat' : 'no-repeat';
+    el.style.opacity = (b.opacity ?? 100) / 100;
+  }
+  const d = $('#bgDrop'); if (!d) return;
+  d.classList.toggle('has', !!b.src);
+  d.style.backgroundImage = b.src ? `url("${b.src}")` : '';
+  $('#bgRemove').disabled = !b.src;
+  if (b.src && b.name) $('#bgMsg').textContent = b.name;
+}
+function loadBgFile(file){
+  if (!file) return;
+  if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) { $('#bgMsg').textContent = 'PNG, JPG, WEBP, GIF 이미지만 올릴 수 있어요.'; return; }
+  const r = new FileReader();
+  r.onload = () => {
+    const done = (src, note) => { S.bg.src = src; S.bg.name = `${file.name}${note}`; save(); applyBg(); };
+    if (file.type === 'image/gif') { done(r.result, ' (움직이는 GIF 유지)'); return; }
+    const img = new Image();
+    img.onload = () => {   // 큰 이미지는 긴 변 1200px로 줄여서 사용
+      const sc = Math.min(1, 1200 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      let url = c.toDataURL('image/webp', .85); if (!url.startsWith('data:image/webp')) url = c.toDataURL('image/png');
+      done(url, ` · ${c.width}×${c.height}px`);
+    };
+    img.onerror = () => { $('#bgMsg').textContent = '이미지를 읽지 못했어요. 다른 파일로 다시 시도해 주세요.'; };
+    img.src = r.result;
+  };
+  r.readAsDataURL(file);
+}
+function applyAll(){ applyScope(); renderWidgets(); renderAll(); }
+
+/* ---------- connection ---------- */
+const ST_LABEL = { idle:'대기', connecting:'연결 중', live:'연결됨', error:'입력 필요' };
+function updateConn(){
+  PF_ORDER.forEach(k => { const e = $('#st-' + k); e.className = 'st ' + state.status[k]; e.textContent = ST_LABEL[state.status[k]]; });
+  const n = liveList().length;
+  $('#connDot').classList.toggle('live', n > 0);
+  $('#connText').textContent = n ? `${n}개 플랫폼 연결됨` : '연결 안 됨';
+}
+function connectOne(p, instant){
+  const c = S.conn.p[p];
+  if (!c.on) state.status[p] = 'idle';
+  else if (!String(c.id).trim()) state.status[p] = 'error';
+  else if (instant) state.status[p] = 'live';
+  else {
+    state.status[p] = 'connecting';
+    setTimeout(() => { if (state.status[p] === 'connecting') { state.status[p] = 'live'; updateConn(); renderWidgets(); } }, 400 + Math.random()*900);
+  }
+}
+/* 방송 시간: 플랫폼별 방송 시작 시각(목업)을 기준으로 계산. 실서비스에서는 플랫폼 API의 방송 시작 시각 */
+const START_OFFSET = { chzzk:-95, youtube:0, twitch:40, kick:180, chear:300 };   // 초 단위, 목업
+const startOf = k => state.streamStart + (START_OFFSET[k] || 0) * 1000;
+function uptimeRef(){
+  const live = liveList();
+  if (!state.streamStart || !live.length) return null;
+  const ref = S.timer.ref || 'earliest';
+  if (ref !== 'earliest' && live.includes(ref)) return ref;
+  return live.reduce((a, k) => startOf(k) < startOf(a) ? k : a);
+}
+function renderUptimeInfo(){
+  const el = $('#uptimeInfo'); if (!el) return;
+  const live = liveList().slice().sort((a, b) => startOf(a) - startOf(b));
+  if (!state.streamStart || !live.length) { el.textContent = '연결된 플랫폼이 없어서 방송 전으로 표시돼요.'; return; }
+  const p = uptimeRef();
+  el.textContent = `방송 시작 시각(목업): ${live.map(k => `${PF[k].name} ${hhmm(startOf(k))}`).join(' · ')} → 지금 기준: ${PF[p].name}`;
+}
+function connectAll(instant){ if (!state.streamStart) state.streamStart = Date.now() - 5025000; PF_ORDER.forEach(p => connectOne(p, instant)); updateConn(); renderWidgets(); }
+function disconnectAll(){ PF_ORDER.forEach(p => state.status[p] = 'idle'); updateConn(); renderWidgets(); }
+
+/* mock loop */
+function pickPlatform(live){ const tot = live.reduce((a,k) => a + Math.sqrt(state.viewers[k]), 0); let r = Math.random()*tot; for (const k of live){ r -= Math.sqrt(state.viewers[k]); if (r <= 0) return k; } return live[0]; }
+function loop(){
+  const live = liveList();
+  if (!state.paused && live.length && S.conn.mode === 'mock') ingest(mockMessage(pickPlatform(live)));
+  setTimeout(loop, (1000 / Math.max(.2, S.conn.rate)) * (.35 + Math.random()*1.3));
+}
+
+/* ---------- json ---------- */
+function normalize(m){ const { _t, _cleared, ...rest } = m; return { ...rest, user:{ ...rest.user, roleClass:userClass(m) } }; }
+function rawOf(m){
+  const u = m.user, has = k => u.roles.includes(k), t = m.message.text;
+  switch (m.platform){
+    case 'youtube': return { kind:'youtube#liveChatMessage', snippet:{ type: m.type === 'donation' ? 'superChatEvent' : m.type === 'subscription' ? 'newSponsorEvent' : 'textMessageEvent', displayMessage:t, publishedAt:m.receivedAt,
+      ...(m.type === 'donation' ? { superChatDetails:{ amountMicros:String(m.amount.value*1e6), currency:'KRW' } } : {}) },
+      authorDetails:{ displayName:u.nickname, isChatOwner:has('owner'), isChatModerator:has('moderator'), isChatSponsor:has('member'), isVerified:has('verified') } };
+    case 'twitch': {
+      const map = { broadcaster:'broadcaster/1', moderator:'moderator/1', vip:'vip/1', subscriber:`subscriber/${u.subMonths || 1}`, verified:'partner/1', artist:'artist-badge/1', bits:'bits/1000', turbo:'turbo/1', prime:'premium/1' };
+      return { command:'PRIVMSG', channel:'#coffeewriter', tags:{ 'display-name':u.nickname, color:u.color || '', badges:u.roles.map(r => map[r]).filter(Boolean).join(','), 'badge-info': u.subMonths ? `subscriber/${u.subMonths}` : '', ...(m.type === 'donation' ? { bits:String(m.amount.value) } : {}) }, message:t };
+    }
+    case 'chzzk': return { msgTypeCode: m.type === 'donation' ? 10 : 1, msg:t, profile:{ nickname:u.nickname, userRoleCode: has('streamer') ? 'streamer' : has('manager') ? 'streaming_channel_manager' : 'common_user',
+      streamingProperty:{ subscription: u.subMonths ? { accumulativeMonth:u.subMonths, tier:1 } : null, nicknameColor:{ colorCode:u.color || 'CC000' } }, activityBadges:u.roles.filter(r => ['cheese','gifter'].includes(r)) },
+      ...(m.type === 'donation' ? { extras:{ payAmount:m.amount.value } } : {}) };
+    case 'kick': return { event: m.type === 'chat' ? 'ChatMessageEvent' : m.type === 'donation' ? 'KicksGifted' : 'SubscriptionEvent', content:t,
+      sender:{ username:u.nickname, identity:{ color:u.color, badges:u.roles.map(r => ({ type:r, ...(r === 'subscriber' ? { count:u.subMonths } : {}) })) } } };
+    case 'chear': return { note:'CHEAR 원본 형식은 연동 문서 확인 필요 (목업)', nickname:u.nickname, roles:u.roles, message:t };
+    default: return { note:'투네이션 내부 후원 이벤트 (목업)', donationType:m.donation.kind, donator:{ nickname:u.nickname, membershipTier:u.toonationTier }, cash:m.donation.amount.value, message:t, detail:m.donation.detail };
+  }
+}
+function hl(json){
+  return esc(json).replace(/(&quot;[^&]*?(?:&(?!quot;)[^&]*?)*&quot;)(\s*:)?|\b(true|false|null)\b|(-?\d+(?:\.\d+)?)/g, (all, str, colon, lit, num) => {
+    if (str) return colon ? `<span class="k">${str}</span>${colon}` : `<span class="s">${str}</span>`;
+    if (lit) return `<span class="b">${lit}</span>`;
+    return `<span class="n">${num}</span>`;
+  });
+}
+function renderJson(){
+  const m = state.sel; if (!m) return;
+  $('#jsonOut').innerHTML = hl(JSON.stringify(state.jsonTab === 'raw' ? rawOf(m) : normalize(m), null, 2));
+  $$('#jsonTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === state.jsonTab)));
+}
+function selectFrom(e){
+  const el = e.target.closest('.cw-msg'); if (!el) return;
+  const id = el.dataset.id;
+  const m = state.store.find(x => x.id === id);
+  if (!m) return;
+  state.sel = m; $$('.cw-sel').forEach(x => x.classList.remove('cw-sel')); el.classList.add('cw-sel'); renderJson();
+}
+
+/* ---------- settings UI ---------- */
+function buildDynamic(){
+  $('#connRows').innerHTML = PF_ORDER.map(k => { const P = PF[k]; return `<div class="conn-row">
+    <label class="chk"><input type="checkbox" data-k="conn.p.${k}.on"><span class="pfi" style="background:${P.bg};color:${P.fg}">${P.icon}</span>${P.name}</label>
+    <input class="inp" data-k="conn.p.${k}.id" placeholder="${P.ph}" aria-label="${P.name} ${P.ph}">
+    <span class="st idle" id="st-${k}">대기</span></div>`; }).join('');
+  $('#roleGrid').innerHTML = PF_ORDER.map(k => { const P = PF[k]; return `<div class="rg"><div class="rg-h"><span class="pfi" style="background:${P.bg};color:${P.fg}">${P.icon}</span>${P.name}${P.assumed ? '<span class="tag warn">등급 체계 확인 필요</span>' : ''}</div>
+    <div class="rg-list">${P.roles.map(r => `<label class="chk"><input type="checkbox" data-k="badges.roleOn.${k}.${r.k}"><span class="bdg" style="background:${r.bg};color:${r.fg}">${r.g}${r.months ? '<i>12</i>' : ''}</span>${r.label}</label>`).join('')}</div></div>`; }).join('');
+  $('#tnKinds').innerHTML = Object.entries(TN_GROUPS).map(([g, G]) => `<div class="rg"><div class="tn-grp-h"><i style="background:${G.color}"></i>${G.label}<small>${G.desc}</small></div>
+    <div class="rg-list">${TN_KINDS.filter(x => x.grp === g).map(x => `<label class="chk"><input type="checkbox" data-k="tn.kinds.${x.k}">${x.label}</label>`).join('')}</div></div>`).join('');
+  $('#tierSamples').innerHTML = Object.keys(TIERS).map(t => `<span class="bdg" style="background:${TIERS[t].bg};color:${TIERS[t].fg}">${TIERS[t].g}</span>`).join('');
+  $('#colorTable').innerHTML = CLASSES.map(([k,l]) => `<div class="ct-row"><span>${l}</span><input type="color" data-k="colors.nick.${k}" aria-label="${l} 닉네임 색"><input type="color" data-k="colors.msg.${k}" aria-label="${l} 채팅 색"></div>`).join('');
+  $('#themeGrid').innerHTML = Object.entries(THEMES).map(([k,t]) => {
+    const tc = themeColors(t), nc = tc.nick, mc = tc.msg;
+    const vars = `--ff:'Noto Sans KR';--fs:10px;--fw:700;--gap:${t.gap !== undefined ? t.gap : 3}px;--boxbg:${hexToRgba(t.box.color, t.box.alpha/100)};--rad:${Math.min(t.box.radius,8)}px`;
+    const line = (n, txt, cls, pc, alt) => `<div class="cw-msg r-${cls} ${alt ? 'alt' : ''}" style="--pc:${pc};--nc:${nc[cls]};--mc:${mc[cls]};cursor:inherit"><span class="cw-ava" aria-hidden="true">${n[0]}</span><span class="cw-head"><span class="cw-nick">${n}</span><span class="cw-time">오후 9:12</span></span><span class="cw-text">${txt}</span></div>`;
+    return `<button type="button" class="theme-card" data-theme="${k}" aria-pressed="false"><div class="tp cw-scope th-${k} box-${t.box.mode} dir-left" style="${vars}"><div class="cw-list" style="padding:2px;margin:0">${line('커피라이터','다들 반가워요','streamer','#00e396', true)}${line('고양이집사','ㅋㅋㅋ 미쳤다','subscriber','#9146ff', false)}</div></div><span class="tn">${t.name}</span></button>`;
+  }).join('');
+}
+function buildSegs(){
+  $$('.seg[data-k]').forEach(el => {
+    el.setAttribute('role', 'group');
+    el.innerHTML = el.dataset.opts.split('|').map(s => { const i = s.indexOf(':'); return `<button type="button" data-v="${s.slice(0,i)}" aria-pressed="false">${s.slice(i+1)}</button>`; }).join('');
+    el.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      const cur = getPath(el.dataset.k); const v = typeof cur === 'number' ? Number(b.dataset.v) : b.dataset.v;
+      setPath(el.dataset.k, v); syncUI(); changed(el.dataset.k);
+    });
+  });
+}
+function bindControls(){
+  $$('[data-k]').forEach(el => {
+    if (el.classList.contains('seg') || el.classList.contains('tags')) return;
+    if (!el.id) el.id = 'f-' + el.dataset.k.replace(/\./g, '-');
+    const evt = (el.type === 'checkbox' || el.tagName === 'SELECT') ? 'change' : 'input';
+    el.addEventListener(evt, () => {
+      const v = el.type === 'checkbox' ? el.checked : (el.type === 'range' || el.type === 'number') ? Number(el.value) : el.value;
+      setPath(el.dataset.k, v); syncOutputs(); syncShows(); changed(el.dataset.k);
+    });
+  });
+  $$('.tags[data-k]').forEach(el => {
+    const inp = $('input', el);
+    const add = () => { const v = inp.value.trim(); if (!v) return; const arr = getPath(el.dataset.k); if (!arr.includes(v)) arr.push(v); inp.value = ''; renderTags(el); changed(el.dataset.k); };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); add(); } });
+    $('[data-add]', el).addEventListener('click', add);
+    el.addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (!b) return; getPath(el.dataset.k).splice(+b.dataset.i, 1); renderTags(el); changed(el.dataset.k); });
+  });
+}
+function renderTags(el){ $('.tag-list', el).innerHTML = (getPath(el.dataset.k) || []).map((t,i) => `<span class="tg-item">${esc(t)}<button type="button" data-i="${i}" aria-label="${esc(t)} 삭제">×</button></span>`).join(''); }
+function syncUI(){
+  $$('[data-k]').forEach(el => {
+    const v = getPath(el.dataset.k);
+    if (el.classList.contains('seg')) { $$('button', el).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v)))); return; }
+    if (el.classList.contains('tags')) { renderTags(el); return; }
+    if (el.type === 'checkbox') el.checked = !!v; else if (v != null) el.value = v;
+  });
+  syncOutputs(); syncShows();
+}
+function syncOutputs(){ $$('output[data-o]').forEach(o => o.textContent = getPath(o.dataset.o) + (o.dataset.suf || '')); }
+function syncShows(){ $$('[data-show]').forEach(el => { const [p, vals] = el.dataset.show.split('='); el.hidden = !vals.split(',').includes(String(getPath(p))); }); }
+function changed(k){
+  if (k.startsWith('conn.p.')) {
+    const p = k.split('.')[2];
+    if (k.endsWith('.on') || state.status[p] !== 'idle') { if (!S.conn.p[p].on) state.status[p] = 'idle'; else if (liveList().length || state.status[p] !== 'idle') connectOne(p); updateConn(); }
+  }
+  if (k === 'timer.base') { state.timerMode = S.timer.base; }
+  save(); applyAll();
+}
+function applyTheme(k){
+  const t = THEMES[k]; S.theme = k; Object.assign(S.box, t.box);
+  const tc = themeColors(t); S.colors.nick = tc.nick; S.colors.msg = tc.msg;
+  S.font.outline = t.outline !== undefined ? t.outline : !t.light;
+  if (k === 'minimal') S.font.outlineWidth = 3;
+  S.layout.gap = t.gap !== undefined ? t.gap : 6;
+  S.layout.fadeTop = t.fadeTop !== undefined ? t.fadeTop : true;
+  syncUI(); save(); applyAll();
+}
+
+/* ---------- test input ---------- */
+function fillTestRoles(){
+  const P = PF[$('#tPlatform').value];
+  $('#tRoles').innerHTML = P.roles.map(r => `<label class="chk"><input type="checkbox" value="${r.k}"><span class="bdg" style="background:${r.bg};color:${r.fg}">${r.g}</span>${r.label}</label>`).join('');
+}
+function sendTest(){
+  const p = $('#tPlatform').value;
+  const roles = $$('#tRoles input:checked').map(i => i.value);
+  const u = { id:'test_' + p, nickname:$('#tNick').value.trim() || '테스터', roles, color: $('#tNoColor').checked ? null : $('#tColor').value,
+    subMonths: Number($('#tMonths').value) || null, toonationTier: $('#tTier').value || null };
+  const text = $('#tText').value;
+  const kind = $('#tKind').value;
+  let m;
+  if (kind !== 'chat') {
+    m = mkTn(u, kind, Number($('#tAmount').value) || 0, text.trim(), readDetail(kind));
+  } else {
+    if (!text.trim()) return;
+    m = mk(p, u, 'chat', text);
+  }
+  ingest(m);
+  const w = warnFor(m);
+  $('#tWarn').hidden = !w; $('#tWarn').textContent = w;
+  if (!w) {
+    state.sel = m; renderJson();
+    $$('.cw-sel').forEach(x => x.classList.remove('cw-sel'));
+    const el = $(`#chatList [data-id="${m.id}"]`); if (el) el.classList.add('cw-sel');
+  }
+}
+function warnFor(m){
+  if (m.type === 'toonation_donation') {
+    const t = S.tn, d = m.donation;
+    if (!t.on) return "'투네이션 후원' 탭에서 '채팅창에 투네이션 후원 표시'가 꺼져 있어 미리보기에 나오지 않아요.";
+    if (!t.kinds[d.kind]) return `${d.kindLabel} 후원 표시가 꺼져 있어 미리보기에 나오지 않아요.`;
+    if (d.amount.value < t.min) return `최소 금액(${fmtN(t.min)}캐시)보다 작아서 미리보기에 나오지 않아요.`;
+  }
+  if (filteredReason(m)) return '필터 설정(숨길 닉네임·봇·금칙어) 때문에 숨겨졌어요.';
+  return '';
+}
+function renderDetail(){
+  const k = $('#tKind').value, box = $('#tDetail'), K = TN_KIND[k];
+  $('#tAmountWrap').hidden = !K;
+  if (K) $('#tAmountLbl').textContent = `${K.amt} (${K.unit === '원' ? '원' : '캐시'})`;
+  $('#tTextWrap').hidden = !!K && !K.msg;
+  $('#tMsgNote').hidden = !K || K.msg;
+  const f = K ? K.fields : [];
+  box.hidden = !f.length;
+  box.innerHTML = f.map(x => `<label class="field"><span>${x.label}</span>${x.options
+    ? `<select class="inp" id="td-${x.key}">${x.options.map(o => `<option>${o}</option>`).join('')}</select>`
+    : x.color ? `<input type="color" id="td-${x.key}" value="${esc(x.def)}">`
+    : `<input class="inp" id="td-${x.key}"${x.num ? ' type="number" min="0"' : ''} value="${esc(x.def)}">`}</label>`).join('');
+}
+function readDetail(k){
+  const d = {};
+  TN_KIND[k].fields.forEach(x => { const v = $('#td-' + x.key).value; d[x.key] = x.num ? (Number(v) || 0) : v; });
+  return d;
+}
+
+/* ---------- scenarios ---------- */
+function runScenario(steps){ state.scTimers.forEach(clearTimeout); state.scTimers = steps.map(([d, fn]) => setTimeout(fn, d)); }
+const SCENARIOS = {
+  tn: () => TN_KINDS.map((x, i) => [i * 650, () => {
+    const v = nickUser('chzzk', rnd(['성덕선','히나마루','무지개곰','감자튀김','단풍잎']));
+    const u = { ...v, id:'tn_' + v.id, toonationTier: rnd(['VIP','VVIP','SVIP',null]) };
+    ingest(mkTn(u, x.k, rnd(x.amounts), rnd(DON_LINES), x.sample()));
+  }]),
+  badge: () => {
+    const tiers = ['SVIP','VVIP','VIP',null,'VIP'];
+    const steps = PF_ORDER.map((p, i) => [i*700, () => {
+      const roles = PF[p].roles.filter(r => r.cls !== 'streamer' && r.cls !== 'manager').map(r => r.k);
+      ingest(mk(p, makeUser(p, ['무지개곰','StarDust_kr','치즈냥','pixelfox','단풍잎'][i], roles, { subMonths:24, toonationTier:tiers[i] }), 'chat', `${PF[p].name} 등급 배지 전부 달았어요 :fire:`));
+    }]);
+    steps.push([PF_ORDER.length*700, () => ingest(mk('youtube', state.users.youtube.managers[0], 'chat', '매니저 배지 확인'))]);
+    steps.push([PF_ORDER.length*700 + 700, () => ingest(mk('twitch', state.users.twitch.streamer, 'chat', '스트리머 배지 확인'))]);
+    return steps;
+  },
+  filter: () => [
+    [0, () => ingest(mk('twitch', state.users.twitch.bot, 'chat', '팔로우 고마워요! (봇 메시지)'))],
+    [800, () => ingest(mk('youtube', state.users.youtube.bot, 'chat', 'Thanks for the follow!'))],
+    [1600, () => ingest(mk('chzzk', nickUser('chzzk','새벽세시'), 'chat', '바보야 그걸 왜 놓쳐 ㅋㅋ'))],
+    [2400, () => ingest(mk('kick', nickUser('kick','밤샘러'), 'chat', '광고문의 받습니다 연락 주세요'))],
+    [3200, () => ingest(mk('twitch', makeUser('twitch','MooBot',[]), 'chat', '숨길 닉네임 목록에 있는 계정'))],
+    [4000, () => ingest(mk('youtube', nickUser('youtube','오늘도출석'), 'chat', '필터 확인 끝! 정상 채팅입니다'))]
+  ]
+};
+
+/* ---------- wire up ---------- */
+function init(){
+  buildPools(); buildDynamic(); buildSegs(); bindControls(); syncUI();
+
+  $('#tabs').addEventListener('click', e => {
+    const b = e.target.closest('[data-tab]'); if (!b) return;
+    $$('#tabs [data-tab]').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+    $$('[data-pane]').forEach(p => p.hidden = p.dataset.pane !== b.dataset.tab);
+    try { localStorage.setItem(KEY + '-tab', b.dataset.tab); } catch(e){}
+  });
+  try { const t = localStorage.getItem(KEY + '-tab'); const b = t && $(`#tabs [data-tab="${t}"]`); if (b) b.click(); } catch(e){}
+
+  // accordions
+  $$('.acc').forEach(acc => {
+    const h = $('.acc-h', acc), body = $('.acc-b', acc);
+    h.addEventListener('click', () => { const open = h.getAttribute('aria-expanded') !== 'true'; h.setAttribute('aria-expanded', String(open)); body.hidden = !open; });
+  });
+  // URL card (mock)
+  ['#urlMask','#urlCopy','#urlOpen'].forEach(id => $(id).addEventListener('click', () => { $('#urlMsg').hidden = false; }));
+  $('#wordLink').addEventListener('click', () => { $('#wordMsg').hidden = false; });
+  // 배경 이미지 업로드
+  $('#bgFile').addEventListener('change', e => { loadBgFile(e.target.files[0]); e.target.value = ''; });
+  const drop = $('#bgDrop');
+  ['dragenter','dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(t => drop.addEventListener(t, () => drop.classList.remove('over')));
+  drop.addEventListener('drop', e => { e.preventDefault(); loadBgFile(e.dataTransfer.files[0]); });
+  $('#bgRemove').addEventListener('click', () => { S.bg.src = ''; S.bg.name = ''; $('#bgMsg').textContent = 'PNG, JPG, WEBP, GIF'; save(); applyBg(); });
+
+  $('#themeGrid').addEventListener('click', e => { const b = e.target.closest('[data-theme]'); if (b) applyTheme(b.dataset.theme); });
+  $$('[data-bulk]').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.bulk, set = (grp, v) => CLASSES.forEach(([c]) => S.colors[grp][c] = v);
+    if (k === 'nick-white') { S.colors.nickMode = 'role'; set('nick', '#ffffff'); }
+    if (k === 'nick-black') { S.colors.nickMode = 'role'; set('nick', '#111111'); }
+    if (k === 'msg-white') set('msg', '#ffffff');
+    if (k === 'msg-black') set('msg', '#111111');
+    if (k === 'role-default') { const tc = themeColors(THEMES[S.theme]); S.colors.nickMode = 'role'; S.colors.nick = tc.nick; S.colors.msg = tc.msg; }
+    syncUI(); save(); applyAll();
+  }));
+
+  $('#connectBtn').addEventListener('click', () => connectAll(false));
+  $('#disconnectBtn').addEventListener('click', disconnectAll);
+  $('#reconnectBtn').addEventListener('click', () => { PF_ORDER.forEach(p => { if (state.status[p] !== 'idle') connectOne(p); }); updateConn(); renderWidgets(); });
+  $('#clearBtn').addEventListener('click', () => { state.store.forEach(x => x._cleared = true); renderAll(); });
+  $('#pauseBtn').addEventListener('click', e => { state.paused = !state.paused; e.currentTarget.textContent = state.paused ? '다시 재생' : '일시정지'; });
+
+  let resetArmed = null;
+  $('#resetBtn').addEventListener('click', e => {
+    const b = e.currentTarget;
+    if (!resetArmed) { b.textContent = '한 번 더 누르면 초기화'; resetArmed = setTimeout(() => { b.textContent = '설정 초기화'; resetArmed = null; }, 3000); return; }
+    clearTimeout(resetArmed); resetArmed = null; b.textContent = '설정 초기화';
+    S = clone(DEFAULTS); state.timerMode = S.timer.base; syncUI(); save(); applyAll();
+  });
+
+  $('#scope').addEventListener('click', selectFrom);
+  $('#jsonTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.jsonTab = b.dataset.v; renderJson(); });
+
+  $('#tPlatform').innerHTML = PF_ORDER.map(k => `<option value="${k}">${PF[k].name}</option>`).join('');
+  $('#tPlatform').value = 'chzzk';
+  $('#tPlatform').addEventListener('change', fillTestRoles);
+  fillTestRoles();
+  $('#tKind').innerHTML = `<option value="chat">플랫폼 채팅</option>` + Object.entries(TN_GROUPS).map(([g, G]) => `<optgroup label="투네이션 후원 · ${G.label}">${TN_KINDS.filter(x => x.grp === g).map(x => `<option value="${x.k}">${x.label} 후원</option>`).join('')}</optgroup>`).join('');
+  $('#tKind').addEventListener('change', renderDetail);
+  renderDetail();
+  $('#tnQuick').innerHTML = Object.entries(TN_GROUPS).map(([g, G]) => `<div class="tnq-row"><span class="tnq-lbl">${G.label}</span>${TN_KINDS.filter(x => x.grp === g).map(x => `<button type="button" class="tnq-btn" data-tnq="${x.k}"><i style="background:${G.color}"></i>${x.label}</button>`).join('')}</div>`).join('');
+  $('#tnQuick').addEventListener('click', e => {
+    const b = e.target.closest('[data-tnq]'); if (!b) return;
+    const k = b.dataset.tnq;
+    if ($('#tKind').value !== k) { $('#tKind').value = k; renderDetail(); }
+    $('#tAmount').value = TN_KIND[k].def;
+    sendTest();
+  });
+  $('#tSend').addEventListener('click', sendTest);
+  $('#tText').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendTest(); } });
+
+  $$('[data-scn]').forEach(b => b.addEventListener('click', () => runScenario(SCENARIOS[b.dataset.scn]())));
+
+  // timers
+  setInterval(() => {
+    const t = timerState();
+    $$('.cw-timer').forEach(e => { if (!t) return; $('[data-tick]', e).textContent = t.val; $('.cw-tlabel', e).textContent = t.label; e.classList.toggle('done', !!t.done); });
+    if (S.fx.autoHide) { const lim = Date.now() - S.fx.hideSec*1000; $$('#chatList .cw-msg:not(.cw-out)').forEach(el => { if (+el.dataset.t < lim) { el.classList.add('cw-out'); setTimeout(() => el.remove(), 450); } }); }
+  }, 250);
+  setInterval(() => { PF_ORDER.forEach(k => { state.viewers[k] = Math.max(1, Math.round(state.viewers[k] * (1 + (Math.random() - .5) * .06))); }); updateViewers(); }, 4000);
+
+  // first frame: connected with sample chat
+  connectAll(true);
+  applyAll();
+  const live = liveList();
+  for (let i = 0; i < 10 && live.length; i++) { const m = mockMessage(pickPlatform(live)); ingest(m); m._t = Date.now() - (10 - i) * 1200; }
+  renderAll();
+  const first = state.store.find(m => m.type === 'chat' && visible(m));
+  if (first) { state.sel = first; renderJson(); renderAll(); }
+  setTimeout(loop, 1200);
+}
+init();
+})();
+</script>
+
+</body>
+</html>

@@ -333,6 +333,8 @@ export default function DashboardPage() {
                 <SidebarMenuItem label="통합 알림창" isSubItem active={activePage === 'alerts'} onClick={() => navigate('/dashboard')} />
               </div>
               <SidebarMenuItem label="위젯" isSubItem />
+              {/* 채팅창 위젯 업그레이드 테스트 페이지 (public/chat-widget.html) */}
+              <SidebarMenuItem label="채팅창 위젯" isSubItem onClick={() => window.location.href = '/chat-widget.html'} />
               <SidebarMenuItem label="크루 스튜디오" isSubItem onClick={() => window.location.href = 'https://excel-eosin-sigma.vercel.app/'} />
               <SidebarMenuItem label="간편설정" isSubItem />
             </div>
