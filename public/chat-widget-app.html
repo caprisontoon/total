@@ -423,8 +423,8 @@ input[type=color]{width:36px; height:32px; padding:0; border:1px solid var(--lin
 
       <!-- 1. 스타일 -->
       <section class="card acc">
-        <button type="button" class="acc-h" aria-expanded="false"><span class="t">스타일<span class="sub">위젯 스타일, 채팅 박스</span></span><i class="chev" aria-hidden="true"></i></button>
-        <div class="acc-b" hidden>
+        <button type="button" class="acc-h" aria-expanded="true"><span class="t">스타일<span class="sub">위젯 스타일, 채팅 박스</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b">
           <div class="row top"><span class="lbl">위젯 스타일</span>
             <div class="ctl"><div class="theme-grid" id="themeGrid"></div><p class="hint">스타일을 바꾸면 박스, 글자색, 외곽선, 채팅 간격이 그 스타일의 기본값으로 바뀝니다.</p></div></div>
           <div class="row"><span class="lbl">채팅 박스</span><div><div class="seg" data-k="box.mode" data-opts="box:배경 있음|text:채팅만"></div></div></div>
@@ -449,7 +449,91 @@ input[type=color]{width:36px; height:32px; padding:0; border:1px solid var(--lin
         </div>
       </section>
 
-      <!-- 2. 폰트 설정 -->
+      <!-- 2. 배치·효과 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="true"><span class="t">배치·효과<span class="sub">줄 수, 정렬, 등장·감추기</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b">
+          <div class="row"><span class="lbl">채팅 최대 표시 줄</span>
+            <div class="unit"><input class="inp" type="number" data-k="layout.maxLines" min="3" max="30" aria-label="채팅 최대 표시 줄"><em>줄</em></div></div>
+          <div class="row"><span class="lbl">채팅 정렬</span><div class="ctl"><div class="seg" data-k="layout.align" data-opts="wrap:한 줄|start:시작라인 맞춤|stack:닉네임 위"></div>
+            <label class="chk" data-show="layout.align=wrap"><input type="checkbox" data-k="layout.colon">닉네임 구분선 표시 (닉네임 : 채팅)</label></div></div>
+          <div class="row"><span class="lbl">표시 방향</span><div><div class="seg" data-k="layout.dir" data-opts="left:왼쪽|center:가운데|right:오른쪽"></div></div></div>
+          <div class="row"><span class="lbl">채팅 간격</span>
+            <div class="range"><input type="range" data-k="layout.gap" min="0" max="20" aria-label="채팅 간격"><output data-o="layout.gap" data-suf="px"></output></div></div>
+          <div class="row"><span class="lbl">위쪽 채팅 흐리게</span>
+            <div><label class="tgl"><input type="checkbox" data-k="layout.fadeTop" aria-label="위쪽 채팅 흐리게"><span></span></label></div></div>
+          <div class="sub-h">효과</div>
+          <div class="row"><span class="lbl">등장 효과</span>
+            <div class="inline">
+              <select class="inp" data-k="fx.type" aria-label="등장 효과">
+                <option value="none">효과 없음</option><option value="fade">Fade In</option><option value="slide">Slide In</option><option value="up">Slide Up</option><option value="pop">Pop</option>
+              </select>
+              <div class="range"><input type="range" data-k="fx.speed" min="0.1" max="1" step="0.05" aria-label="등장 속도"><output data-o="fx.speed" data-suf="초"></output></div>
+            </div></div>
+          <div class="row"><span class="lbl">자동으로 감추기</span>
+            <div><label class="tgl"><input type="checkbox" data-k="fx.autoHide" aria-label="자동으로 감추기"><span></span></label></div></div>
+          <div class="row" data-show="fx.autoHide=true"><span class="lbl">감추기 시간</span>
+            <div class="unit"><input class="inp" type="number" data-k="fx.hideSec" min="5" max="300" aria-label="감추기 시간"><em>초</em></div></div>
+        </div>
+      </section>
+
+      <!-- 3. 채팅 아이콘 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">채팅 아이콘<span class="core">핵심</span><span class="sub">플랫폼 아이콘, 플랫폼 등급, 투네이션 후원자 등급</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b" hidden>
+          <div class="row"><span class="lbl">플랫폼 아이콘</span>
+            <div><label class="tgl"><input type="checkbox" data-k="badges.platform" aria-label="플랫폼 아이콘 표시"><span></span></label></div></div>
+          <div class="row"><span class="lbl">플랫폼 등급 배지</span>
+            <div><label class="tgl"><input type="checkbox" data-k="badges.roles" aria-label="플랫폼 등급 배지 표시"><span></span></label></div></div>
+          <div class="row"><span class="lbl">구독·멤버십 개월수</span>
+            <div><label class="tgl"><input type="checkbox" data-k="badges.months" aria-label="구독·멤버십 개월수 표시"><span></span></label></div></div>
+          <div class="row"><span class="lbl">배지 크기</span><div><div class="seg" data-k="badges.size" data-opts="s:작게|m:보통|l:크게"></div></div></div>
+          <div class="sub-h">투네이션 후원자 등급</div>
+          <div class="row"><span class="lbl">후원자 등급 배지</span>
+            <div class="inline"><label class="tgl"><input type="checkbox" data-k="badges.tn" aria-label="투네이션 후원자 등급 배지 표시"><span></span></label><span class="inline" id="tierSamples"></span></div></div>
+          <div class="row"><span class="lbl">배지 위치</span><div><div class="seg" data-k="badges.tnPos" data-opts="before:닉네임 앞|after:닉네임 뒤"></div></div></div>
+          <p class="hint">플랫폼이 달라도 같은 투네이션 후원자면 같은 등급 배지가 붙습니다(도네이터 멤버십 연동).</p>
+          <div class="sub-h">플랫폼별 등급 배지</div>
+          <div class="groups" id="roleGrid" style="margin-top:10px"></div>
+        </div>
+      </section>
+
+      <!-- 4. 투네이션 후원 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">투네이션 후원<span class="core">핵심</span><span class="sub">채팅창에 후원 내역 표시</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b" hidden>
+          <div class="row"><span class="lbl">채팅창에 후원 표시</span>
+            <div><label class="tgl"><input type="checkbox" data-k="tn.on" aria-label="채팅창에 투네이션 후원 표시"><span></span></label></div></div>
+          <p class="note">실서비스 기본값은 '꺼짐'을 권장합니다. 통합 알림창과 함께 쓰면 같은 후원이 화면에 두 번 보이기 때문입니다. 이 테스트 페이지에서는 확인하기 쉽게 켜 두었습니다.</p>
+          <div class="row"><span class="lbl">표시 방식</span>
+            <div class="ctl"><div class="seg" data-k="tn.style" data-opts="line:한 줄|accent:강조 줄|card:카드"></div>
+              <p class="hint" data-show="tn.style=card">카드는 종류·금액, 결과, 메시지를 줄을 나눠 크게 보여줍니다. 눈에 잘 띄는 대신 채팅 여러 줄을 차지해서, 통합 알림창을 쓰지 않는 스트리머에게 맞는 옵션이에요.</p></div></div>
+          <div class="row"><span class="lbl">최소 금액</span>
+            <div class="range"><input type="range" data-k="tn.min" min="0" max="50000" step="1000" aria-label="표시할 최소 후원 금액"><output data-o="tn.min" data-suf="캐시 이상"></output></div></div>
+          <div class="row"><span class="lbl">금액 표시</span><div><label class="tgl"><input type="checkbox" data-k="tn.showAmount" aria-label="금액 표시"><span></span></label></div></div>
+          <div class="row"><span class="lbl">후원 메시지 표시</span><div><label class="tgl"><input type="checkbox" data-k="tn.showMessage" aria-label="후원 메시지 표시"><span></span></label></div></div>
+          <div class="sub-h">후원 종류별 표시</div>
+          <div class="rg-list" id="tnKinds" style="margin-top:10px"></div>
+        </div>
+      </section>
+
+      <!-- 5. 시청자수·방송 시간 -->
+      <section class="card acc">
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">시청자수·방송 시간<span class="core">핵심</span><span class="sub">채팅창 위·아래 또는 별도 URL로 표시</span></span><i class="chev" aria-hidden="true"></i></button>
+        <div class="acc-b" hidden>
+          <div class="row"><span class="lbl">통합 시청자수</span><div><div class="seg" data-k="viewers.pos" data-opts="off:사용 안 함|top:위|bottom:아래|separate:별도 URL"></div></div></div>
+          <div class="row" data-show="viewers.pos=top,bottom,separate"><span class="lbl">시청자수 표시</span><div><div class="seg" data-k="viewers.mode" data-opts="total:합계만|each:플랫폼별|both:둘 다"></div></div></div>
+          <div class="sub-h">방송 시간·시계</div>
+          <div class="row"><span class="lbl">위치</span><div><div class="seg" data-k="timer.pos" data-opts="off:사용 안 함|top:위|bottom:아래|separate:별도 URL"></div></div></div>
+          <div class="row"><span class="lbl">표시 내용</span><div><div class="seg" data-k="timer.base" data-opts="none:표시 안 함|clock:현재 시간|uptime:방송 시간"></div></div></div>
+          <div class="row" data-show="timer.base=uptime"><span class="lbl">방송 시간 기준</span>
+            <div class="ctl"><div class="seg" data-k="timer.ref" data-opts="earliest:가장 먼저 시작한 플랫폼|youtube:YouTube|chear:CHEAR|kick:KICK|chzzk:치지직|twitch:Twitch"></div>
+              <p class="hint" id="uptimeInfo"></p>
+              <p class="hint">플랫폼을 지정했는데 그 플랫폼이 방송 중이 아니거나 '표시할 플랫폼'에서 빠져 있으면, 가장 먼저 시작한 플랫폼 기준으로 보여줘요.</p></div></div>
+        </div>
+      </section>
+
+      <!-- 6. 폰트 설정 -->
       <section class="card acc">
         <button type="button" class="acc-h" aria-expanded="false"><span class="t">폰트 설정<span class="sub">글꼴, 외곽선, 닉네임·채팅 색</span></span><i class="chev" aria-hidden="true"></i></button>
         <div class="acc-b" hidden>
@@ -494,59 +578,14 @@ input[type=color]{width:36px; height:32px; padding:0; border:1px solid var(--lin
         </div>
       </section>
 
-      <!-- 3. 배치·효과 -->
+      <!-- 7. 채팅 필터 -->
       <section class="card acc">
-        <button type="button" class="acc-h" aria-expanded="false"><span class="t">배치·효과<span class="sub">줄 수, 정렬, 등장·감추기</span></span><i class="chev" aria-hidden="true"></i></button>
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">채팅 필터<span class="sub">표시할 플랫폼, 숨길 닉네임, 봇</span></span><i class="chev" aria-hidden="true"></i></button>
         <div class="acc-b" hidden>
-          <div class="row"><span class="lbl">채팅 최대 표시 줄</span>
-            <div class="unit"><input class="inp" type="number" data-k="layout.maxLines" min="3" max="30" aria-label="채팅 최대 표시 줄"><em>줄</em></div></div>
-          <div class="row"><span class="lbl">채팅 정렬</span><div class="ctl"><div class="seg" data-k="layout.align" data-opts="wrap:한 줄|start:시작라인 맞춤|stack:닉네임 위"></div>
-            <label class="chk" data-show="layout.align=wrap"><input type="checkbox" data-k="layout.colon">닉네임 구분선 표시 (닉네임 : 채팅)</label></div></div>
-          <div class="row"><span class="lbl">표시 방향</span><div><div class="seg" data-k="layout.dir" data-opts="left:왼쪽|center:가운데|right:오른쪽"></div></div></div>
-          <div class="row"><span class="lbl">채팅 간격</span>
-            <div class="range"><input type="range" data-k="layout.gap" min="0" max="20" aria-label="채팅 간격"><output data-o="layout.gap" data-suf="px"></output></div></div>
-          <div class="row"><span class="lbl">위쪽 채팅 흐리게</span>
-            <div><label class="tgl"><input type="checkbox" data-k="layout.fadeTop" aria-label="위쪽 채팅 흐리게"><span></span></label></div></div>
-          <div class="sub-h">효과</div>
-          <div class="row"><span class="lbl">등장 효과</span>
-            <div class="inline">
-              <select class="inp" data-k="fx.type" aria-label="등장 효과">
-                <option value="none">효과 없음</option><option value="fade">Fade In</option><option value="slide">Slide In</option><option value="up">Slide Up</option><option value="pop">Pop</option>
-              </select>
-              <div class="range"><input type="range" data-k="fx.speed" min="0.1" max="1" step="0.05" aria-label="등장 속도"><output data-o="fx.speed" data-suf="초"></output></div>
-            </div></div>
-          <div class="row"><span class="lbl">자동으로 감추기</span>
-            <div><label class="tgl"><input type="checkbox" data-k="fx.autoHide" aria-label="자동으로 감추기"><span></span></label></div></div>
-          <div class="row" data-show="fx.autoHide=true"><span class="lbl">감추기 시간</span>
-            <div class="unit"><input class="inp" type="number" data-k="fx.hideSec" min="5" max="300" aria-label="감추기 시간"><em>초</em></div></div>
-        </div>
-      </section>
-
-      <!-- 4. 채팅 아이콘 -->
-      <section class="card acc">
-        <button type="button" class="acc-h" aria-expanded="false"><span class="t">채팅 아이콘<span class="core">핵심</span><span class="sub">플랫폼 아이콘, 플랫폼 등급, 투네이션 후원자 등급</span></span><i class="chev" aria-hidden="true"></i></button>
-        <div class="acc-b" hidden>
-          <div class="row"><span class="lbl">플랫폼 아이콘</span>
-            <div><label class="tgl"><input type="checkbox" data-k="badges.platform" aria-label="플랫폼 아이콘 표시"><span></span></label></div></div>
-          <div class="row"><span class="lbl">플랫폼 등급 배지</span>
-            <div><label class="tgl"><input type="checkbox" data-k="badges.roles" aria-label="플랫폼 등급 배지 표시"><span></span></label></div></div>
-          <div class="row"><span class="lbl">구독·멤버십 개월수</span>
-            <div><label class="tgl"><input type="checkbox" data-k="badges.months" aria-label="구독·멤버십 개월수 표시"><span></span></label></div></div>
-          <div class="row"><span class="lbl">배지 크기</span><div><div class="seg" data-k="badges.size" data-opts="s:작게|m:보통|l:크게"></div></div></div>
-          <div class="sub-h">투네이션 후원자 등급</div>
-          <div class="row"><span class="lbl">후원자 등급 배지</span>
-            <div class="inline"><label class="tgl"><input type="checkbox" data-k="badges.tn" aria-label="투네이션 후원자 등급 배지 표시"><span></span></label><span class="inline" id="tierSamples"></span></div></div>
-          <div class="row"><span class="lbl">배지 위치</span><div><div class="seg" data-k="badges.tnPos" data-opts="before:닉네임 앞|after:닉네임 뒤"></div></div></div>
-          <p class="hint">플랫폼이 달라도 같은 투네이션 후원자면 같은 등급 배지가 붙습니다(도네이터 멤버십 연동).</p>
-          <div class="sub-h">플랫폼별 등급 배지</div>
-          <div class="groups" id="roleGrid" style="margin-top:10px"></div>
-        </div>
-      </section>
-
-      <!-- 5. 채팅 필터 -->
-      <section class="card acc">
-        <button type="button" class="acc-h" aria-expanded="false"><span class="t">채팅 필터<span class="sub">숨길 닉네임, 봇</span></span><i class="chev" aria-hidden="true"></i></button>
-        <div class="acc-b" hidden>
+          <div class="row"><span class="lbl">표시할 플랫폼</span>
+            <div class="ctl"><div class="rg-list" id="pfFilter"></div>
+              <p class="hint">체크한 플랫폼의 채팅만 채팅창에 보여요. 뺀 플랫폼은 시청자수와 방송 시간 기준에서도 빠져요. 투네이션 후원은 플랫폼과 상관없이 보여요.</p></div></div>
+          <hr class="divider">
           <div class="row top"><span class="lbl">숨길 닉네임</span>
             <div class="tags" data-k="filter.nicks"><div class="inline"><input class="inp" placeholder="숨길 닉네임" aria-label="숨길 닉네임 추가"><button type="button" class="btn primary" data-add>추가</button></div><div class="tag-list"></div></div></div>
           <div class="row"><span class="lbl">봇 자동 숨김</span>
@@ -555,42 +594,6 @@ input[type=color]{width:36px; height:32px; padding:0; border:1px solid var(--lin
           <div class="row"><span class="lbl">금칙어</span>
             <div class="ctl"><div class="inline"><button type="button" class="link" id="wordLink">금칙어 설정 ›</button><span class="hint">후원 메시지와 채팅창에 같은 목록이 적용돼요.</span></div>
               <p class="hint" id="wordMsg" hidden>실서비스에서는 금칙어 설정 메뉴로 이동해요. 테스트용 목업 목록은 '바보, 광고문의'이고 ♡로 바꿔 보여줘요.</p></div></div>
-        </div>
-      </section>
-
-      <!-- 6. 시청자수·방송 시간 -->
-      <section class="card acc">
-        <button type="button" class="acc-h" aria-expanded="false"><span class="t">시청자수·방송 시간<span class="core">핵심</span><span class="sub">채팅창 위·아래 또는 별도 URL로 표시</span></span><i class="chev" aria-hidden="true"></i></button>
-        <div class="acc-b" hidden>
-          <div class="row"><span class="lbl">통합 시청자수</span><div><div class="seg" data-k="viewers.pos" data-opts="off:사용 안 함|top:위|bottom:아래|separate:별도 URL"></div></div></div>
-          <div class="row" data-show="viewers.pos=top,bottom,separate"><span class="lbl">시청자수 표시</span><div><div class="seg" data-k="viewers.mode" data-opts="total:합계만|each:플랫폼별|both:둘 다"></div></div></div>
-          <div class="sub-h">방송 시간·시계</div>
-          <div class="row"><span class="lbl">위치</span><div><div class="seg" data-k="timer.pos" data-opts="off:사용 안 함|top:위|bottom:아래|separate:별도 URL"></div></div></div>
-          <div class="row"><span class="lbl">표시 내용</span><div><div class="seg" data-k="timer.base" data-opts="none:표시 안 함|clock:현재 시간|uptime:방송 시간"></div></div></div>
-          <div class="row" data-show="timer.base=uptime"><span class="lbl">방송 시간 기준</span>
-            <div class="ctl"><div class="seg" data-k="timer.ref" data-opts="earliest:가장 먼저 시작한 플랫폼|youtube:YouTube|chear:CHEAR|kick:KICK|chzzk:치지직|twitch:Twitch"></div>
-              <p class="hint" id="uptimeInfo"></p>
-              <p class="hint">플랫폼을 지정했는데 그 플랫폼이 방송 중이 아니면 가장 먼저 시작한 플랫폼 기준으로 보여줘요.</p></div></div>
-        </div>
-      </section>
-
-      <!-- 7. 투네이션 후원 -->
-      <section class="card acc">
-        <button type="button" class="acc-h" aria-expanded="false"><span class="t">투네이션 후원<span class="core">핵심</span><span class="sub">채팅창에 후원 내역 표시</span></span><i class="chev" aria-hidden="true"></i></button>
-        <div class="acc-b" hidden>
-          <div class="row"><span class="lbl">채팅창에 후원 표시</span>
-            <div><label class="tgl"><input type="checkbox" data-k="tn.on" aria-label="채팅창에 투네이션 후원 표시"><span></span></label></div></div>
-          <p class="note">실서비스 기본값은 '꺼짐'을 권장합니다. 통합 알림창과 함께 쓰면 같은 후원이 화면에 두 번 보이기 때문입니다. 이 테스트 페이지에서는 확인하기 쉽게 켜 두었습니다.</p>
-          <div class="row"><span class="lbl">표시 방식</span>
-            <div class="ctl"><div class="seg" data-k="tn.style" data-opts="line:한 줄|accent:강조 줄|card:카드"></div>
-              <p class="hint" data-show="tn.style=card">카드는 종류·금액, 결과, 메시지를 줄을 나눠 크게 보여줍니다. 눈에 잘 띄는 대신 채팅 여러 줄을 차지해서, 통합 알림창을 쓰지 않는 스트리머에게 맞는 옵션이에요.</p></div></div>
-          <div class="row"><span class="lbl">최소 금액</span>
-            <div class="range"><input type="range" data-k="tn.min" min="0" max="50000" step="1000" aria-label="표시할 최소 후원 금액"><output data-o="tn.min" data-suf="캐시 이상"></output></div></div>
-          <div class="row"><span class="lbl">금액 표시</span><div><label class="tgl"><input type="checkbox" data-k="tn.showAmount" aria-label="금액 표시"><span></span></label></div></div>
-          <div class="row"><span class="lbl">후원 메시지 표시</span><div><label class="tgl"><input type="checkbox" data-k="tn.showMessage" aria-label="후원 메시지 표시"><span></span></label></div></div>
-          <div class="sub-h">후원 종류별 표시 <span class="hint" style="font-weight:500">16종을 4가지 형태로 묶음 (UI 설계서 v3.3 후원 탭 기준)</span></div>
-          <p class="hint" style="margin-top:6px">한 줄 구조: [투네이션 아이콘][후원자 등급] 닉네임 [종류 · 금액] 선택 항목 · 메시지. 종류 칩 색으로 형태를 구분합니다.</p>
-          <div class="groups" id="tnKinds" style="margin-top:10px"></div>
         </div>
       </section>
 
@@ -809,6 +812,8 @@ const TN_GROUPS = {
   select:  { label:'선택형',   desc:'크리에이터가 등록한 항목을 골라 후원', color:'#8b5cf6', color2:'#c2389f' },
   mission: { label:'미션형',   desc:'상금을 걸고 도전을 요청 (메시지 입력 없음)', color:'#e0761b', color2:'#d23b5a' }
 };
+// 채팅창 후원 표시 색: 후원 종류와 상관없이 한 가지 색으로 통일 (TN_GROUPS 색은 테스트 탭에서만 사용)
+const TN_COLOR = '#2f6bff', TN_COLOR2 = '#5a3fe0';
 const TN_KINDS = [
   { k:'text', label:'텍스트', grp:'msg', w:30, msg:true, amt:'후원 금액', def:5000, amounts:[1000,3000,5000,10000,30000],
     fields:[], line:() => '', sample:() => ({}) },
@@ -907,7 +912,7 @@ const DEFAULTS = {
   badges:{ platform:true, roles:true, months:true, tn:true, tnPos:'before', size:'m', roleOn:roleOnDefault },
   colors:{ nickMode:'role', single:'#ffffff', tnPriority:true, nick:{...NICK_DARK}, msg:{...MSG_DARK} },
   font:{ family:'Noto Sans KR', size:20, bold:true, outline:true, outlineColor:'#000000', outlineWidth:3 },
-  filter:{ nicks:['Nightbot','StreamElements','MooBot'], bots:true, words:['바보','광고문의'], wordMode:'heart' },
+  filter:{ platforms:Object.fromEntries(PF_ORDER.map(k => [k, true])), nicks:['Nightbot','StreamElements','MooBot'], bots:true, words:['바보','광고문의'], wordMode:'heart' },
   viewers:{ pos:'top', mode:'both' },
   timer:{ pos:'top', base:'uptime', ref:'earliest' },
   tn:{ on:true, style:'accent', min:0, showAmount:true, showMessage:true, applyFilter:true, kinds:Object.fromEntries(TN_KINDS.map(x => [x.k, true])) },
@@ -1032,6 +1037,7 @@ function mockMessage(p){
 
 /* ---------- ingest & visibility ---------- */
 function filteredReason(m){
+  if (PF[m.platform] && S.filter.platforms && S.filter.platforms[m.platform] === false) return 'platform';   // 표시할 플랫폼에서 빠진 플랫폼
   const nick = m.user.nickname.toLowerCase();
   if (S.filter.nicks.some(n => n.toLowerCase() === nick)) return 'nick';
   if (S.filter.bots && (m.user.isBot || BOT_NAMES.includes(nick))) return 'bot';
@@ -1094,13 +1100,13 @@ const avaHtml = m => `<span class="cw-ava" aria-hidden="true">${esc([...m.user.n
 const timeHtml = m => `<span class="cw-time">${hhmm(m._t)}</span>`;
 const altCls = m => (parseInt(m.id.replace(/\D/g, ''), 10) % 2) ? 'alt' : '';
 function tnHtml(m){
-  const d = m.donation, G = TN_GROUPS[d.group], cls = userClass(m), b = badges(m);
+  const d = m.donation, cls = userClass(m), b = badges(m);
   const sel = state.sel && state.sel.id === m.id ? 'cw-sel' : '';
-  const chip = `<span class="cw-ev cw-tnchip" style="background:${G.color}">${d.kindLabel}${S.tn.showAmount ? ' ' + tnAmountText(d) : ''}</span>`;
+  const chip = `<span class="cw-ev cw-tnchip" style="background:${TN_COLOR}">${d.kindLabel}${S.tn.showAmount ? ' ' + tnAmountText(d) : ''}</span>`;
   const det = d.summary ? `<span class="cw-det">${esc(d.summary)}</span>` : '';
   const mcol = d.kind === 'mini' && d.detail.colorOn === '적용' ? ` style="color:${esc(d.detail.color)}"` : '';
   const msg = S.tn.showMessage && m.message.text ? (det ? '<span class="cw-det cw-sepdot">·</span>' : '') + `<span class="cw-msgline"${mcol}>${textHtml(m)}</span>` : '';
-  return `<div class="cw-msg cw-tn tn-${S.tn.style} r-${cls} ${altCls(m)} ${sel}" data-id="${m.id}" data-t="${m._t || 0}" style="--pc:#2f6bff;--gc:${G.color};--gc2:${G.color2};--nc:${nickColor(m)};--mc:${S.tn.style === 'card' ? '#fff' : S.colors.msg[cls]}">`
+  return `<div class="cw-msg cw-tn tn-${S.tn.style} r-${cls} ${altCls(m)} ${sel}" data-id="${m.id}" data-t="${m._t || 0}" style="--pc:#2f6bff;--gc:${TN_COLOR};--gc2:${TN_COLOR2};--nc:${nickColor(m)};--mc:${S.tn.style === 'card' ? '#fff' : S.colors.msg[cls]}">`
     + avaHtml(m) + `<span class="cw-head">${b.pre}<span class="cw-nick">${esc(m.user.nickname)}</span>${b.post}${timeHtml(m)}</span>`
     + `<span class="cw-text">${chip}${det}${msg}</span></div>`;
 }
@@ -1127,6 +1133,8 @@ function appendMsg(m){
 /* widgets */
 function fmtDur(sec){ sec = Math.max(0, sec); const h = Math.floor(sec/3600), m = Math.floor(sec%3600/60), s = sec%60; const p = n => String(n).padStart(2,'0'); return h ? `${h}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`; }
 const liveList = () => PF_ORDER.filter(k => state.status[k] === 'live');
+// '표시할 플랫폼'에서 뺀 플랫폼을 제외한 연결 플랫폼 (시청자수, 방송 시간 기준에 사용)
+const shownList = () => liveList().filter(k => !(S.filter.platforms && S.filter.platforms[k] === false));
 function timerState(){
   const now = Date.now();
   if (state.timerMode === 'clock') return { label:'현재 시간', val:hms() };
@@ -1137,7 +1145,7 @@ function timerState(){
   return null;
 }
 function viewersHtml(){
-  const live = liveList(); if (!live.length) return '';
+  const live = shownList(); if (!live.length) return '';
   const total = live.reduce((a,k) => a + state.viewers[k], 0);
   const chips = S.viewers.mode !== 'total' ? live.map(k => `<span class="cw-vc"><span class="cw-pf" style="background:${PF[k].bg};color:${PF[k].fg}" title="${PF[k].name}">${PF[k].icon}</span><b data-vc="${k}">${fmtN(state.viewers[k])}</b></span>`).join('') : '';
   const tot = S.viewers.mode !== 'each' ? `<span class="cw-vt">합계 <b data-vt>${fmtN(total)}</b></span>` : '';
@@ -1155,7 +1163,7 @@ function renderWidgets(){
 }
 function updateViewers(){
   $$('[data-vc]').forEach(e => e.textContent = fmtN(state.viewers[e.dataset.vc]));
-  const total = liveList().reduce((a,k) => a + state.viewers[k], 0);
+  const total = shownList().reduce((a,k) => a + state.viewers[k], 0);
   $$('[data-vt]').forEach(e => e.textContent = fmtN(total));
 }
 
@@ -1240,7 +1248,7 @@ function connectOne(p, instant){
 const START_OFFSET = { chzzk:-95, youtube:0, twitch:40, kick:180, chear:300 };   // 초 단위, 목업
 const startOf = k => state.streamStart + (START_OFFSET[k] || 0) * 1000;
 function uptimeRef(){
-  const live = liveList();
+  const live = shownList();
   if (!state.streamStart || !live.length) return null;
   const ref = S.timer.ref || 'earliest';
   if (ref !== 'earliest' && live.includes(ref)) return ref;
@@ -1248,8 +1256,8 @@ function uptimeRef(){
 }
 function renderUptimeInfo(){
   const el = $('#uptimeInfo'); if (!el) return;
-  const live = liveList().slice().sort((a, b) => startOf(a) - startOf(b));
-  if (!state.streamStart || !live.length) { el.textContent = '연결된 플랫폼이 없어서 방송 전으로 표시돼요.'; return; }
+  const live = shownList().slice().sort((a, b) => startOf(a) - startOf(b));
+  if (!state.streamStart || !live.length) { el.textContent = liveList().length ? '표시할 플랫폼을 모두 빼서 방송 전으로 표시돼요.' : '연결된 플랫폼이 없어서 방송 전으로 표시돼요.'; return; }
   const p = uptimeRef();
   el.textContent = `방송 시작 시각(목업): ${live.map(k => `${PF[k].name} ${hhmm(startOf(k))}`).join(' · ')} → 지금 기준: ${PF[p].name}`;
 }
@@ -1313,8 +1321,10 @@ function buildDynamic(){
     <span class="st idle" id="st-${k}">대기</span></div>`; }).join('');
   $('#roleGrid').innerHTML = PF_ORDER.map(k => { const P = PF[k]; return `<div class="rg"><div class="rg-h"><span class="pfi" style="background:${P.bg};color:${P.fg}">${P.icon}</span>${P.name}${P.assumed ? '<span class="tag warn">등급 체계 확인 필요</span>' : ''}</div>
     <div class="rg-list">${P.roles.map(r => `<label class="chk"><input type="checkbox" data-k="badges.roleOn.${k}.${r.k}"><span class="bdg" style="background:${r.bg};color:${r.fg}">${r.g}${r.months ? '<i>12</i>' : ''}</span>${r.label}</label>`).join('')}</div></div>`; }).join('');
-  $('#tnKinds').innerHTML = Object.entries(TN_GROUPS).map(([g, G]) => `<div class="rg"><div class="tn-grp-h"><i style="background:${G.color}"></i>${G.label}<small>${G.desc}</small></div>
-    <div class="rg-list">${TN_KINDS.filter(x => x.grp === g).map(x => `<label class="chk"><input type="checkbox" data-k="tn.kinds.${x.k}">${x.label}</label>`).join('')}</div></div>`).join('');
+  // 후원 페이지 후원 메뉴 순서(UI 설계서 v3.3)대로 분류 없이 나열
+  const TN_MENU_ORDER = ['text','game','signature','mini','voice','video','roulette','wishlist','vote','quest','drawing','gift','luckybox','play','gacha','crew'];
+  $('#tnKinds').innerHTML = TN_MENU_ORDER.map(k => `<label class="chk"><input type="checkbox" data-k="tn.kinds.${k}">${TN_KIND[k].label}</label>`).join('');
+  $('#pfFilter').innerHTML = PF_ORDER.map(k => `<label class="chk"><input type="checkbox" data-k="filter.platforms.${k}"><span class="pfi" style="background:${PF[k].bg};color:${PF[k].fg}">${PF[k].icon}</span>${PF[k].name}</label>`).join('');
   $('#tierSamples').innerHTML = Object.keys(TIERS).map(t => `<span class="bdg" style="background:${TIERS[t].bg};color:${TIERS[t].fg}">${TIERS[t].g}</span>`).join('');
   $('#colorTable').innerHTML = CLASSES.map(([k,l]) => `<div class="ct-row"><span>${l}</span><input type="color" data-k="colors.nick.${k}" aria-label="${l} 닉네임 색"><input type="color" data-k="colors.msg.${k}" aria-label="${l} 채팅 색"></div>`).join('');
   $('#themeGrid').innerHTML = Object.entries(THEMES).map(([k,t]) => {

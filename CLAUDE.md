@@ -100,7 +100,7 @@ npx vite preview  # 빌드 결과 미리보기 (포트 4173)
    **저장소 전용 차이는 유지한다:**
    - `<head>`의 embed 스크립트(`window.self !== window.top` / `?embed=1` → `html.embed`, `data-theme="light"`)
    - `.prev-foot` 뒤의 `.embed` CSS 블록 (상단바 숨김, `--bg:#f9fafb`, 여백·stage 높이)
-   - 모든 아코디언 기본 접힘 ('스타일' 포함 `aria-expanded="false"` + `.acc-b hidden`, 테스트 탭은 원본 그대로)
+   - 상단바(`.topbar`)의 '대시보드로 돌아가기' 버튼 (`<a class="btn sm" href="/dashboard">`)
    - 아티팩트 게시 시 붙는 문서 골격(`<!doctype html><html><head>...<body>` 래퍼)은 저장소 파일 형식을 따른다.
 5. 설정 키(`DEFAULTS`, `THEMES`, `data-k`)가 바뀌면 `localStorage`(`tn-chat-widget-lab-v1`)에 남은 이전 값과 충돌하지 않는지 확인한다.
    기존 저장값이 깨질 변경이면 `load()`에서 보정하거나 사용자에게 알린다.
