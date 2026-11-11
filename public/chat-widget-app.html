@@ -73,13 +73,13 @@ button,input,select,textarea{font:inherit; color:inherit}
 /* url card (mirrors the live widget page) */
 .url-card{padding:18px 20px; display:flex; flex-direction:column; gap:10px}
 .url-row{display:flex; gap:8px; flex-wrap:wrap}
+.url-row .url-sel{flex:0 0 auto; width:auto; min-width:150px}
 .url-mask{flex:1 1 220px; min-width:0; border:0; border-radius:8px; background:var(--mask); color:#fff; font-weight:700; padding:9px 12px; cursor:pointer}
 
 /* accordion */
 .acc-h{width:100%; display:flex; align-items:center; gap:8px; padding:18px 22px; border:0; background:none; cursor:pointer; text-align:left; font-size:15px; font-weight:700; color:var(--fg)}
 .acc-h .t{flex:1; min-width:0; display:flex; align-items:center; flex-wrap:wrap; gap:4px 8px}
 .acc-h .sub{font-weight:500; font-size:12.5px; color:var(--muted)}
-.acc-h .core{font-size:10.5px; padding:1px 6px; border-radius:6px; background:var(--accent); color:var(--accent-fg); font-weight:700}
 .chev{width:9px; height:9px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(45deg); transition:transform .2s; flex:0 0 auto; opacity:.6; margin-right:4px}
 .acc-h[aria-expanded="true"] .chev{transform:rotate(-135deg)}
 .acc-b{border-top:1px solid var(--line); padding:6px 22px 18px; display:flex; flex-direction:column}
@@ -412,8 +412,8 @@ input[type=color]{width:36px; height:32px; padding:0; border:1px solid var(--lin
     <!-- ===================== 설정 ===================== -->
     <section class="pane" data-pane="settings">
       <div class="card url-card">
-        <select class="inp" id="urlSel" aria-label="채팅 URL 종류" style="width:100%"><option>통합 채팅 URL</option><option>시청자수 전용 URL</option><option>방송 시간 전용 URL</option></select>
         <div class="url-row">
+          <select class="inp url-sel" id="urlSel" aria-label="채팅 URL 종류"><option>통합 채팅 URL</option><option>시청자수 전용 URL</option><option>방송 시간 전용 URL</option></select>
           <button type="button" class="url-mask" id="urlMask">클릭하여 URL 확인</button>
           <button type="button" class="btn soft" id="urlCopy">URL 복사</button>
           <button type="button" class="btn primary" id="urlOpen">열기</button>
@@ -479,7 +479,7 @@ input[type=color]{width:36px; height:32px; padding:0; border:1px solid var(--lin
 
       <!-- 3. 채팅 아이콘 -->
       <section class="card acc">
-        <button type="button" class="acc-h" aria-expanded="false"><span class="t">채팅 아이콘<span class="core">핵심</span><span class="sub">플랫폼 아이콘, 플랫폼 등급, 투네이션 후원자 등급</span></span><i class="chev" aria-hidden="true"></i></button>
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">채팅 아이콘<span class="sub">플랫폼 아이콘, 플랫폼 등급, 투네이션 후원자 등급</span></span><i class="chev" aria-hidden="true"></i></button>
         <div class="acc-b" hidden>
           <div class="row"><span class="lbl">플랫폼 아이콘</span>
             <div><label class="tgl"><input type="checkbox" data-k="badges.platform" aria-label="플랫폼 아이콘 표시"><span></span></label></div></div>
@@ -500,16 +500,13 @@ input[type=color]{width:36px; height:32px; padding:0; border:1px solid var(--lin
 
       <!-- 4. 투네이션 후원 -->
       <section class="card acc">
-        <button type="button" class="acc-h" aria-expanded="false"><span class="t">투네이션 후원<span class="core">핵심</span><span class="sub">채팅창에 후원 내역 표시</span></span><i class="chev" aria-hidden="true"></i></button>
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">투네이션 후원<span class="sub">채팅창에 후원 내역 표시</span></span><i class="chev" aria-hidden="true"></i></button>
         <div class="acc-b" hidden>
           <div class="row"><span class="lbl">채팅창에 후원 표시</span>
             <div><label class="tgl"><input type="checkbox" data-k="tn.on" aria-label="채팅창에 투네이션 후원 표시"><span></span></label></div></div>
-          <p class="note">실서비스 기본값은 '꺼짐'을 권장합니다. 통합 알림창과 함께 쓰면 같은 후원이 화면에 두 번 보이기 때문입니다. 이 테스트 페이지에서는 확인하기 쉽게 켜 두었습니다.</p>
           <div class="row"><span class="lbl">표시 방식</span>
             <div class="ctl"><div class="seg" data-k="tn.style" data-opts="line:한 줄|accent:강조 줄|card:카드"></div>
               <p class="hint" data-show="tn.style=card">카드는 종류·금액, 결과, 메시지를 줄을 나눠 크게 보여줍니다. 눈에 잘 띄는 대신 채팅 여러 줄을 차지해서, 통합 알림창을 쓰지 않는 스트리머에게 맞는 옵션이에요.</p></div></div>
-          <div class="row"><span class="lbl">최소 금액</span>
-            <div class="range"><input type="range" data-k="tn.min" min="0" max="50000" step="1000" aria-label="표시할 최소 후원 금액"><output data-o="tn.min" data-suf="캐시 이상"></output></div></div>
           <div class="row"><span class="lbl">금액 표시</span><div><label class="tgl"><input type="checkbox" data-k="tn.showAmount" aria-label="금액 표시"><span></span></label></div></div>
           <div class="row"><span class="lbl">후원 메시지 표시</span><div><label class="tgl"><input type="checkbox" data-k="tn.showMessage" aria-label="후원 메시지 표시"><span></span></label></div></div>
           <div class="sub-h">후원 종류별 표시</div>
@@ -519,7 +516,7 @@ input[type=color]{width:36px; height:32px; padding:0; border:1px solid var(--lin
 
       <!-- 5. 시청자수·방송 시간 -->
       <section class="card acc">
-        <button type="button" class="acc-h" aria-expanded="false"><span class="t">시청자수·방송 시간<span class="core">핵심</span><span class="sub">채팅창 위·아래 또는 별도 URL로 표시</span></span><i class="chev" aria-hidden="true"></i></button>
+        <button type="button" class="acc-h" aria-expanded="false"><span class="t">시청자수·방송 시간<span class="sub">채팅창 위·아래 또는 별도 URL로 표시</span></span><i class="chev" aria-hidden="true"></i></button>
         <div class="acc-b" hidden>
           <div class="row"><span class="lbl">통합 시청자수</span><div><div class="seg" data-k="viewers.pos" data-opts="off:사용 안 함|top:위|bottom:아래|separate:별도 URL"></div></div></div>
           <div class="row" data-show="viewers.pos=top,bottom,separate"><span class="lbl">시청자수 표시</span><div><div class="seg" data-k="viewers.mode" data-opts="total:합계만|each:플랫폼별|both:둘 다"></div></div></div>
@@ -915,7 +912,7 @@ const DEFAULTS = {
   filter:{ platforms:Object.fromEntries(PF_ORDER.map(k => [k, true])), nicks:['Nightbot','StreamElements','MooBot'], bots:true, words:['바보','광고문의'], wordMode:'heart' },
   viewers:{ pos:'top', mode:'both' },
   timer:{ pos:'top', base:'uptime', ref:'earliest' },
-  tn:{ on:true, style:'accent', min:0, showAmount:true, showMessage:true, applyFilter:true, kinds:Object.fromEntries(TN_KINDS.map(x => [x.k, true])) },
+  tn:{ on:true, style:'accent', showAmount:true, showMessage:true, applyFilter:true, kinds:Object.fromEntries(TN_KINDS.map(x => [x.k, true])) },
   customCss:'',
   bg:{ src:'', name:'', fit:'cover', opacity:100 },
   stage:{ bg:'game', width:460 }
@@ -1052,7 +1049,7 @@ function visible(m){
   if (filteredReason(m)) return false;
   if (m.type === 'toonation_donation') {
     const t = S.tn;
-    if (!t.on || !t.kinds[m.donation.kind] || m.donation.amount.value < t.min) return false;
+    if (!t.on || !t.kinds[m.donation.kind]) return false;
   }
   return true;
 }
@@ -1426,7 +1423,6 @@ function warnFor(m){
     const t = S.tn, d = m.donation;
     if (!t.on) return "'투네이션 후원' 탭에서 '채팅창에 투네이션 후원 표시'가 꺼져 있어 미리보기에 나오지 않아요.";
     if (!t.kinds[d.kind]) return `${d.kindLabel} 후원 표시가 꺼져 있어 미리보기에 나오지 않아요.`;
-    if (d.amount.value < t.min) return `최소 금액(${fmtN(t.min)}캐시)보다 작아서 미리보기에 나오지 않아요.`;
   }
   if (filteredReason(m)) return '필터 설정(숨길 닉네임·봇·금칙어) 때문에 숨겨졌어요.';
   return '';
