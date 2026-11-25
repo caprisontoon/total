@@ -63,6 +63,9 @@ button,input,select,textarea{font:inherit; color:inherit}
   padding-block:18px 28px; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px))}
 .main{min-width:0; display:flex; flex-direction:column; gap:14px}
 .preview{position:sticky; top:12px; width:402px; min-width:0}
+/* 리모컨 탭: 미리보기 없이 리모컨 목업만 전체 폭으로 */
+.app.no-preview{grid-template-columns:minmax(0,1fr)}
+.app.no-preview > .preview{display:none}
 @media (max-width:920px){ .app{grid-template-columns:minmax(0,1fr)} .preview{position:static; order:-1; width:100%; max-width:402px; justify-self:center} }
 
 .page-tabs{display:flex; gap:4px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:5px; width:fit-content; max-width:100%}
@@ -445,6 +448,53 @@ div.tnv-card{cursor:default}
 @keyframes cwTicker{to{transform:translateX(-100%)}}
 @keyframes cwBlink{50%{opacity:.3}}
 @media (prefers-reduced-motion: reduce){ .cw-enter, .cw-exit{animation:none!important} .ns-ticker .cw-notice .cw-ntext span{animation:none; padding-left:0} .cw-timer.done .cw-tval{animation:none} }
+/* ============ 리모컨 채팅 위젯 (모니터링) ============ */
+.rc-note{margin:0; font-size:13px; color:var(--muted); line-height:1.55}
+.rc-frame{background:var(--panel-2); border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column}
+.rc-top{display:flex; align-items:center; justify-content:space-between; height:44px; padding:0 16px; background:var(--panel); border-bottom:1px solid var(--line); font-size:14px}
+.rc-top .rc-ico{display:flex; gap:12px; color:var(--muted)}
+.rc-canvas{display:grid; gap:8px; padding:8px; height:calc(100vh - 330px); min-height:460px; max-height:640px; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 340px; grid-template-rows:minmax(0,1.3fr) minmax(0,1fr); grid-template-areas:"a a chat" "b c chat"}
+.rc-canvas.no-chat{grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-areas:"a a" "b c"}
+.rc-w{display:flex; flex-direction:column; min-height:0; min-width:0; background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden}
+.rc-w.off{visibility:hidden}
+.rc-hd{display:flex; align-items:center; justify-content:space-between; height:44px; flex-shrink:0; padding:0 8px 0 16px; border-bottom:1px solid var(--line); font-size:15px; font-weight:600; letter-spacing:-.3px; user-select:none}
+.rc-hd .t{display:flex; align-items:center; gap:6px; min-width:0}
+.rc-live{font:700 10.5px/1 var(--ui); color:#fff; background:#ff3b30; border-radius:4px; padding:3px 5px}
+.rc-ib{width:28px; height:28px; display:grid; place-items:center; border:0; border-radius:6px; background:none; color:var(--muted); cursor:pointer}
+.rc-ib:hover{background:var(--panel-2); color:var(--fg)}
+.rc-sk{flex:1; padding:12px 16px; display:flex; flex-direction:column; gap:10px; overflow:hidden}
+.rc-sk i{display:block; height:12px; border-radius:6px; background:var(--panel-2)}
+.rc-bar{display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--line); font-size:12.5px; color:var(--muted); flex-shrink:0}
+.rc-bar > span{white-space:nowrap}
+.rc-bar input{flex:1; min-width:60px; accent-color:var(--accent)}
+.rc-bar output{min-width:40px; text-align:right; font-weight:600; color:var(--fg); font-variant-numeric:tabular-nums}
+.rc-sb{width:24px; height:24px; flex-shrink:0; border:1px solid var(--line); border-radius:6px; background:var(--panel); color:var(--fg); cursor:pointer; font-size:14px; line-height:1}
+.rc-body{position:relative; flex:1; min-height:0; overflow:hidden}
+.rc-scope{position:absolute; inset:0}
+#rcList{height:100%; overflow-y:auto; justify-content:flex-start; margin:0; padding:10px; scrollbar-width:thin}
+#rcList::before{content:''; flex:1}
+#rcList .cw-msg{cursor:default}
+.rc-new{position:absolute; left:50%; bottom:10px; transform:translateX(-50%); border:0; border-radius:14px; padding:5px 12px; background:var(--accent); color:var(--accent-fg); font-size:12px; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.rc-chat.float{position:fixed; right:24px; bottom:24px; width:360px; height:540px; z-index:60; box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.rc-chat.float .rc-hd{cursor:move}
+/* 분리된 창: 오른쪽 아래 모서리를 끌어서 크기 조절 */
+.rc-chat.float{resize:both; min-width:260px; min-height:280px; max-width:calc(100vw - 16px); max-height:calc(100vh - 16px)}
+.rc-grip{display:none; position:absolute; right:0; bottom:0; width:18px; height:18px; z-index:2; cursor:nwse-resize; touch-action:none;
+  background:linear-gradient(135deg, transparent 50%, var(--muted) 50%, var(--muted) 58%, transparent 58%, transparent 70%, var(--muted) 70%, var(--muted) 78%, transparent 78%); opacity:.7}
+.rc-chat.float .rc-grip{display:block}
+.rc-chat.float{resize:none}
+.rc-dock{display:flex; justify-content:center; gap:10px; padding:10px; border-top:1px solid var(--line); background:var(--panel); flex-wrap:wrap}
+.rc-dk{width:40px; height:40px; border:0; border-radius:10px; display:grid; place-items:center; cursor:pointer; color:#fff; font:700 11px/1 var(--ui); padding:0; transition:filter .15s, box-shadow .15s}
+.rc-dk:hover{filter:brightness(1.08)}
+.rc-dk[aria-pressed="false"]{opacity:.45}
+.rc-dk.chat[aria-pressed="true"]{box-shadow:0 0 0 2px var(--panel), 0 0 0 4px var(--accent)}
+.rc-dk.pin{background:var(--panel-2); color:var(--muted); border:1px solid var(--line)}
+@media (max-width:760px){
+  .rc-canvas, .rc-canvas.no-chat{grid-template-columns:minmax(0,1fr); grid-template-rows:auto; grid-template-areas:"chat"; height:auto}
+  .rc-canvas .rc-ph{display:none}
+  .rc-chat:not(.float){height:480px}
+  .rc-chat.float{left:16px; right:16px; width:auto; bottom:16px; height:70vh}
+}
 </style>
 <style id="customCss"></style>
 
@@ -470,6 +520,7 @@ div.tnv-card{cursor:default}
     <nav class="page-tabs" role="tablist" id="tabs" aria-label="페이지 메뉴">
       <button type="button" role="tab" data-tab="settings" aria-selected="true">설정</button>
       <button type="button" role="tab" data-tab="test" aria-selected="false">테스트</button>
+      <button type="button" role="tab" data-tab="remote" aria-selected="false">리모컨</button>
     </nav>
 
     <!-- ===================== 설정 ===================== -->
@@ -779,6 +830,35 @@ div.tnv-card{cursor:default}
           </ul>
         </div>
       </section>
+    </section>
+    <!-- ===================== 리모컨 ===================== -->
+    <section class="pane" data-pane="remote" hidden>
+      <p class="rc-note">리모컨의 채팅 위젯은 실시간 채팅 모니터링용이에요. 크리에이터 페이지에서 설정한 채팅창이 그대로 보이고, 리모컨에서는 텍스트 크기만 조절해요.</p>
+      <div class="rc-frame">
+        <div class="rc-top"><b>투네이션 리모컨</b><span class="rc-ico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span></div>
+        <div class="rc-canvas" id="rcCanvas">
+          <div class="rc-w rc-ph" data-w="a" style="grid-area:a"><div class="rc-hd"><span class="t">후원 리스트</span></div><div class="rc-sk"><i style="width:92%"></i><i style="width:70%"></i><i style="width:84%"></i><i style="width:60%"></i><i style="width:88%"></i><i style="width:76%"></i><i style="width:66%"></i><i style="width:90%"></i></div></div>
+          <div class="rc-w rc-ph" data-w="b" style="grid-area:b"><div class="rc-hd"><span class="t">대기 중인 후원</span></div><div class="rc-sk"><i style="width:92%"></i><i style="width:70%"></i><i style="width:84%"></i><i style="width:60%"></i><i style="width:88%"></i><i style="width:76%"></i><i style="width:66%"></i><i style="width:90%"></i></div></div>
+          <div class="rc-w rc-ph" data-w="c" style="grid-area:c"><div class="rc-hd"><span class="t">퀵 메뉴</span></div><div class="rc-sk"><i style="width:92%"></i><i style="width:70%"></i><i style="width:84%"></i><i style="width:60%"></i><i style="width:88%"></i><i style="width:76%"></i><i style="width:66%"></i><i style="width:90%"></i></div></div>
+          <div class="rc-w rc-chat" id="rcChat" style="grid-area:chat">
+            <div class="rc-hd" id="rcHead"><span class="t">채팅 <span class="rc-live">LIVE</span></span>
+              <span style="display:flex;gap:2px">
+                <button type="button" class="rc-ib" id="rcPop" title="창 분리" aria-label="창 분리"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></button>
+                <button type="button" class="rc-ib" id="rcClose" title="닫기" aria-label="닫기"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+              </span></div>
+            <div class="rc-bar"><span>텍스트 크기</span><button type="button" class="rc-sb" data-d="-10" aria-label="텍스트 작게">−</button><input type="range" id="rcFs" min="50" max="200" step="10" value="100" aria-label="텍스트 크기"><button type="button" class="rc-sb" data-d="10" aria-label="텍스트 크게">+</button><output id="rcFsOut">100%</output></div>
+            <div class="rc-body bg-checker"><div class="cw-scope rc-scope" id="rcScope"><div class="cw-list" id="rcList" aria-live="off"></div></div><button type="button" class="rc-new" id="rcNew" hidden>새 채팅 ↓</button></div>
+            <span class="rc-grip" id="rcGrip" title="끌어서 크기 조절" aria-hidden="true"></span>
+          </div>
+        </div>
+        <div class="rc-dock" id="rcDock">
+          <button type="button" class="rc-dk pin" title="독 고정" aria-label="독 고정"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M15 3l6 6-3 1-4 4 1 5-2 2-4-4-5 5-1-1 5-5-4-4 2-2 5 1 4-4z"/></svg></button>
+          <button type="button" class="rc-dk chat" data-dk="chat" aria-pressed="true" title="채팅" aria-label="채팅" style="background:linear-gradient(135deg,#7c6cff,#4f46e5)"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.4 1.3 4.6 3.4 6.1L4.6 21l4.3-2.4c1 .3 2 .4 3.1.4 5.5 0 10-3.6 10-8s-4.5-8-10-8z"/><circle cx="8" cy="11" r="1.3" fill="#4f46e5"/><circle cx="12" cy="11" r="1.3" fill="#4f46e5"/><circle cx="16" cy="11" r="1.3" fill="#4f46e5"/></svg></button>
+          <button type="button" class="rc-dk" data-dk="a" aria-pressed="true" title="후원 리스트" style="background:#ff7a59">후원</button>
+          <button type="button" class="rc-dk" data-dk="b" aria-pressed="true" title="대기 중인 후원" style="background:#3b7bff">대기</button>
+          <button type="button" class="rc-dk" data-dk="c" aria-pressed="true" title="퀵 메뉴" style="background:#12a36a">퀵</button>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -1235,6 +1315,7 @@ function renderAll(){
   const now = Date.now();
   const vis = state.store.filter(m => visible(m) && !(S.fx.autoHide && now - m._t > S.fx.hideSec*1000));
   $('#chatList').innerHTML = vis.slice(-S.layout.maxLines).map(m => msgHtml(m)).join('');
+  renderRemote();
 }
 function appendMsg(m){
   const list = $('#chatList');
@@ -1242,6 +1323,7 @@ function appendMsg(m){
   list.lastElementChild.classList.add('cw-enter');
   const live = [...list.children].filter(e => !e.classList.contains('cw-exit'));
   live.slice(0, Math.max(0, live.length - S.layout.maxLines)).forEach(exitMsg);
+  appendRemote(m);
 }
 function exitMsg(el){   // 퇴장 효과 후 삭제
   if (el.classList.contains('cw-exit')) return;
@@ -1304,6 +1386,7 @@ function applyScope(){
   $('#stage').className = 'stage bg-' + S.stage.bg;
   $('#customCss').textContent = S.customCss || '';
   applyBg();
+  syncRemoteScope();
   $$('#tnStyleGrid .tnv-card').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tnv === S.tn.style)));
   $$('#themeGrid .theme-card').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.theme === S.theme)));
 }
@@ -1649,15 +1732,101 @@ const SCENARIOS = {
   ]
 };
 
+/* ---------- 리모컨 채팅 위젯 (모니터링) ---------- */
+const RC_MAX = 150;
+let rcPct = 100;
+try { rcPct = +localStorage.getItem(KEY + '-rcfs') || 100; } catch(e){}
+const rcAtBottom = () => { const l = $('#rcList'); return l.scrollHeight - l.scrollTop - l.clientHeight < 30; };
+const rcToBottom = () => { const l = $('#rcList'); l.scrollTop = l.scrollHeight; $('#rcNew').hidden = true; };
+function syncRemoteScope(){
+  const sc = $('#scope'), rc = $('#rcScope'); if (!rc) return;
+  rc.className = sc.className.replace(/\bfade-top\b/, '') + ' rc-scope';
+  rc.style.cssText = sc.style.cssText;
+  rc.style.setProperty('--fs', (S.font.size * rcPct / 100) + 'px');
+  rc.style.setProperty('--wfs', Math.round(S.font.size * .8 * rcPct / 100) + 'px');
+}
+function setRcSize(v){
+  rcPct = Math.max(50, Math.min(200, v));
+  $('#rcFs').value = rcPct; $('#rcFsOut').textContent = rcPct + '%';
+  try { localStorage.setItem(KEY + '-rcfs', rcPct); } catch(e){}
+  const keep = rcAtBottom(); syncRemoteScope(); if (keep) rcToBottom();
+}
+function renderRemote(){
+  const l = $('#rcList'); if (!l) return;
+  const keep = rcAtBottom();
+  l.innerHTML = state.store.filter(visible).slice(-RC_MAX).map(m => msgHtml(m)).join('');
+  if (keep || !l.clientHeight) rcToBottom();
+}
+function appendRemote(m){
+  const l = $('#rcList'); if (!l) return;
+  const keep = rcAtBottom();
+  l.insertAdjacentHTML('beforeend', msgHtml(m));
+  l.lastElementChild.classList.add('cw-enter');
+  while (l.children.length > RC_MAX) l.firstElementChild.remove();
+  if (keep) rcToBottom(); else if (l.clientHeight) $('#rcNew').hidden = false;
+}
+function rcSetChat(on){
+  const w = $('#rcChat');
+  w.hidden = !on; if (!on) { w.classList.remove('float'); w.style.left = w.style.top = w.style.right = w.style.bottom = w.style.width = w.style.height = ''; }
+  $('#rcCanvas').classList.toggle('no-chat', !on || w.classList.contains('float'));
+  $('#rcDock [data-dk="chat"]').setAttribute('aria-pressed', String(on));
+  if (on) rcToBottom();
+}
+function bindRemote(){
+  $('#rcFs').addEventListener('input', e => setRcSize(+e.target.value));
+  $$('.rc-sb').forEach(b => b.addEventListener('click', () => setRcSize(rcPct + +b.dataset.d)));
+  $('#rcList').addEventListener('scroll', () => { if (rcAtBottom()) $('#rcNew').hidden = true; });
+  $('#rcNew').addEventListener('click', rcToBottom);
+  $('#rcClose').addEventListener('click', () => rcSetChat(false));
+  $('#rcPop').addEventListener('click', () => {
+    const w = $('#rcChat'), f = !w.classList.contains('float');
+    w.classList.toggle('float', f); w.style.left = w.style.top = w.style.right = w.style.bottom = w.style.width = w.style.height = '';
+    if (f && innerWidth > 760) { const r = w.getBoundingClientRect(); w.style.right = w.style.bottom = 'auto'; w.style.left = r.left + 'px'; w.style.top = r.top + 'px'; }
+    $('#rcPop').title = f ? '창 합치기' : '창 분리'; $('#rcPop').setAttribute('aria-label', $('#rcPop').title);
+    $('#rcCanvas').classList.toggle('no-chat', f); rcToBottom();
+  });
+  $('#rcDock').addEventListener('click', e => {
+    const b = e.target.closest('[data-dk]'); if (!b) return;
+    if (b.dataset.dk === 'chat') { rcSetChat($('#rcChat').hidden); return; }
+    const w = $(`#rcCanvas [data-w="${b.dataset.dk}"]`), on = w.classList.contains('off');
+    w.classList.toggle('off', !on); b.setAttribute('aria-pressed', String(on));
+  });
+  // 분리된 창 끌어서 옮기기
+  $('#rcHead').addEventListener('pointerdown', e => {
+    const w = $('#rcChat'); if (!w.classList.contains('float') || e.target.closest('button')) return;
+    const r = w.getBoundingClientRect(), sx = e.clientX, sy = e.clientY;
+    const mv = ev => { w.style.right = w.style.bottom = 'auto';
+      w.style.left = Math.max(0, Math.min(innerWidth - r.width, r.left + ev.clientX - sx)) + 'px';
+      w.style.top = Math.max(0, Math.min(innerHeight - 60, r.top + ev.clientY - sy)) + 'px'; };
+    const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); };
+    addEventListener('pointermove', mv); addEventListener('pointerup', up); e.preventDefault();
+  });
+  // 분리된 창 크기 조절 (오른쪽 아래 모서리)
+  $('#rcGrip').addEventListener('pointerdown', e => {
+    const w = $('#rcChat'); if (!w.classList.contains('float')) return;
+    const r = w.getBoundingClientRect(), sx = e.clientX, sy = e.clientY, keep = rcAtBottom();
+    w.style.left = r.left + 'px'; w.style.top = r.top + 'px'; w.style.right = w.style.bottom = 'auto';
+    const mv = ev => {
+      w.style.width = Math.max(260, Math.min(innerWidth - r.left - 8, r.width + ev.clientX - sx)) + 'px';
+      w.style.height = Math.max(280, Math.min(innerHeight - r.top - 8, r.height + ev.clientY - sy)) + 'px';
+      if (keep) rcToBottom();
+    };
+    const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); };
+    addEventListener('pointermove', mv); addEventListener('pointerup', up); e.preventDefault(); e.stopPropagation();
+  });
+  setRcSize(rcPct);
+}
 /* ---------- wire up ---------- */
 function init(){
-  buildPools(); buildDynamic(); buildSegs(); bindControls(); bindHex(); syncUI();
+  buildPools(); buildDynamic(); buildSegs(); bindControls(); bindHex(); syncUI(); bindRemote();
 
   $('#tabs').addEventListener('click', e => {
     const b = e.target.closest('[data-tab]'); if (!b) return;
     $$('#tabs [data-tab]').forEach(x => x.setAttribute('aria-selected', String(x === b)));
     $$('[data-pane]').forEach(p => p.hidden = p.dataset.pane !== b.dataset.tab);
+    $('.app').classList.toggle('no-preview', b.dataset.tab === 'remote');
     try { localStorage.setItem(KEY + '-tab', b.dataset.tab); } catch(e){}
+    if (b.dataset.tab === 'remote') rcToBottom();
   });
   try { const t = localStorage.getItem(KEY + '-tab'); const b = t && $(`#tabs [data-tab="${t}"]`); if (b) b.click(); } catch(e){}
 
